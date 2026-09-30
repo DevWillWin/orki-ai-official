@@ -1,44 +1,43 @@
 package com.example.ui.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme =
-  darkColorScheme(
-    primary = GreenBright,
-    onPrimary = Color.Black,
-    primaryContainer = DarkSurfaceVariant,
-    onPrimaryContainer = TextPrimary,
-    secondary = TextSecondary,
-    onSecondary = DarkCanvas,
-    secondaryContainer = DarkSurfaceElevated,
-    onSecondaryContainer = TextPrimary,
+private val LightColorScheme = lightColorScheme(
+    primary = ForestGreenPrimary,
+    onPrimary = PureWhite,
+    primaryContainer = SageGreen,
+    onPrimaryContainer = ForestGreenDeep,
+    secondary = SlateTextSecondary,
+    onSecondary = PureWhite,
+    secondaryContainer = PaleSage,
+    onSecondaryContainer = CharcoalTextPrimary,
     tertiary = AmberPro,
-    onTertiary = Color.Black,
-    background = DarkCanvas,
-    onBackground = TextPrimary,
-    surface = DarkSurface,
-    onSurface = TextPrimary,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = TextSecondary,
-    surfaceTint = GreenHighlight,
-    outline = DarkSurfaceBorder,
-    outlineVariant = DarkBorderSubtle,
+    onTertiary = PureWhite,
+    background = IvoryBackground,
+    onBackground = CharcoalTextPrimary,
+    surface = PureWhite,
+    onSurface = CharcoalTextPrimary,
+    surfaceVariant = PaleSage,
+    onSurfaceVariant = SlateTextSecondary,
+    surfaceTint = ForestGreenPrimary,
+    outline = WarmBorder,
+    outlineVariant = WarmBorderSubtle,
     error = ErrorRed,
-    onError = Color.White,
+    onError = PureWhite,
     errorContainer = ErrorRedDark,
-    onErrorContainer = Color(0xFFFCA5A5)
-  )
+    onErrorContainer = ErrorRed
+)
 
 @Composable
 fun OrkiTheme(
-  content: @Composable () -> Unit,
+    content: @Composable () -> Unit,
 ) {
-  MaterialTheme(
-    colorScheme = DarkColorScheme,
-    typography = Typography,
-    content = content
-  )
+    MaterialTheme(
+        colorScheme = LightColorScheme,
+        typography = Typography,
+        content = content
+    )
 }

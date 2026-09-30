@@ -18,18 +18,25 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -52,6 +59,7 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
@@ -95,11 +103,13 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.ChatMessageEntity
 import com.example.data.preferences.UiTranslations
+import com.example.ui.components.ActiveGenerationMode
 import com.example.ui.components.AttachmentPickerDialog
 import com.example.ui.components.AudioPlayerPill
 import com.example.ui.components.ChatMessageItem
 import com.example.ui.components.DrawerContent
 import com.example.ui.components.ImageGenProgressCard
+import com.example.ui.components.SlashCommandsPopup
 import com.example.ui.components.VideoGenProgressCard
 import com.example.ui.components.LiveTalkOverlay
 import com.example.ui.components.LoginDialog
@@ -107,6 +117,16 @@ import com.example.ui.components.SettingsDialog
 import com.example.ui.components.UpgradeDialog
 import com.example.ui.components.bounceClick
 import com.example.ui.theme.AmberPro
+import com.example.ui.theme.CharcoalTextPrimary
+import com.example.ui.theme.ForestGreenDeep
+import com.example.ui.theme.ForestGreenPrimary
+import com.example.ui.theme.IvoryBackground
+import com.example.ui.theme.PaleSage
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.SageGreen
+import com.example.ui.theme.SlateTextSecondary
+import com.example.ui.theme.WarmBorder
+import com.example.ui.theme.WarmBorderSubtle
 import com.example.ui.theme.DarkBorderSubtle
 import com.example.ui.theme.DarkCanvas
 import com.example.ui.theme.DarkSurface
@@ -132,6 +152,7 @@ import com.example.ui.viewmodel.LiveTalkStatus
 import com.example.ui.viewmodel.OrkiViewModel
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MainChatScreen(
     viewModel: OrkiViewModel,
@@ -153,11 +174,20 @@ fun MainChatScreen(
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showUpgradeDialog by remember { mutableStateOf(false) }
     var showLoginDialog by remember { mutableStateOf(false) }
-    var isImageGenMode by remember { mutableStateOf(false) }
+    var activeGenMode by remember { mutableStateOf(com.example.ui.components.ActiveGenerationMode.NONE) }
     var showModelDropdown by remember { mutableStateOf(false) }
     var showAttachMenu by remember { mutableStateOf(false) }
 
     val strings = UiTranslations.get(uiState.uiLanguage)
+
+    // Camera Launcher for capturing photos
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            viewModel.attachCapturedBitmap(bitmap)
+        }
+    }
 
     // Trigger upgrade dialog if quota exceeded
     LaunchedEffect(uiState.triggerUpgradeDialog) {
@@ -193,8 +223,10 @@ fun MainChatScreen(
         }
     }
 
-    // Scroll to bottom when new messages arrive or when response streams or image/video is generating
-    LaunchedEffect(uiState.messages.size, uiState.currentStreamingResponse, uiState.isGeneratingImage, uiState.isGeneratingVideo) {
+    val isImeVisible = WindowInsets.isImeVisible
+
+    // Scroll to bottom when new messages arrive, keyboard opens, response streams or image/video is generating
+    LaunchedEffect(uiState.messages.size, isImeVisible, uiState.currentStreamingResponse, uiState.isGeneratingImage, uiState.isGeneratingVideo) {
         val totalCount = uiState.messages.size +
             (if (uiState.currentStreamingResponse.isNotEmpty()) 1 else 0) +
             (if (uiState.isGeneratingImage) 1 else 0) +
@@ -307,6 +339,7 @@ fun MainChatScreen(
         Scaffold(
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             containerColor = DarkCanvas,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 // Sleek ChatGPT/Claude style Top App Bar with Model Switcher & New Chat
                 Row(
@@ -464,9 +497,8 @@ fun MainChatScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .imePadding()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                        .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp)
                 ) {
                     // Attached File Preview Pill
                     AnimatedVisibility(visible = uiState.attachedFile != null) {
@@ -546,15 +578,26 @@ fun MainChatScreen(
                         }
                     }
 
-                    // Removable AI Image Gen Mode Card (Just like uploaded file card)
-                    AnimatedVisibility(visible = isImageGenMode) {
+                    // Slash Commands Popup (pops up above composer when user types /)
+                    SlashCommandsPopup(
+                        inputText = inputText,
+                        visible = inputText.startsWith("/"),
+                        onSelectCommand = { cmd ->
+                            activeGenMode = cmd.mode
+                            inputText = ""
+                        }
+                    )
+
+                    // Active Generation Mode Card (Image or Video)
+                    AnimatedVisibility(visible = activeGenMode != ActiveGenerationMode.NONE) {
+                        val isImage = activeGenMode == ActiveGenerationMode.IMAGE
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 8.dp)
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(DarkSurfaceVariant)
-                                .border(1.dp, GreenBorder, RoundedCornerShape(14.dp))
+                                .background(PaleSage)
+                                .border(1.dp, SageGreen, RoundedCornerShape(14.dp))
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -567,41 +610,41 @@ fun MainChatScreen(
                                     modifier = Modifier
                                         .size(34.dp)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0x2210B981)),
+                                        .background(SageGreen),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.AutoAwesome,
+                                        imageVector = if (isImage) Icons.Default.AutoAwesome else Icons.Default.Videocam,
                                         contentDescription = null,
-                                        tint = GreenHighlight,
+                                        tint = ForestGreenPrimary,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        text = "AI Image Generation",
+                                        text = if (isImage) "AI Image Generation Mode" else "AI Video Generation Mode",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = TextPrimary,
+                                        color = CharcoalTextPrimary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
-                                        text = "Orki AI Worker • Type your prompt below",
+                                        text = if (isImage) "Perchance AI & Cloudflare • Type prompt below" else "Cinematic 8s Video • Type prompt below",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = GreenTextMuted
+                                        color = SlateTextSecondary
                                     )
                                 }
                             }
                             IconButton(
-                                onClick = { isImageGenMode = false },
+                                onClick = { activeGenMode = ActiveGenerationMode.NONE },
                                 modifier = Modifier.size(24.dp).bounceClick()
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Remove Image Gen",
-                                    tint = TextMuted,
+                                    contentDescription = "Cancel mode",
+                                    tint = SlateTextSecondary,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -612,8 +655,8 @@ fun MainChatScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(26.dp))
-                            .background(DarkSurfaceVariant)
-                            .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(26.dp))
+                            .background(PureWhite)
+                            .border(1.dp, WarmBorder, RoundedCornerShape(26.dp))
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Row(
@@ -629,20 +672,20 @@ fun MainChatScreen(
                                     .testTag("attach_button")
                                     .size(38.dp)
                                     .clip(CircleShape)
-                                    .background(if (uiState.attachedFile != null || isImageGenMode) DarkSurfaceElevated else DarkSurface)
+                                    .background(if (uiState.attachedFile != null || activeGenMode != ActiveGenerationMode.NONE) PaleSage else PureWhite)
                                     .bounceClick()
                             ) {
                                 if (uiState.isProcessingFile) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(16.dp),
                                         strokeWidth = 2.dp,
-                                        color = TextPrimary
+                                        color = ForestGreenPrimary
                                     )
                                 } else {
                                     Icon(
                                         imageVector = Icons.Default.Add,
                                         contentDescription = "Attach File",
-                                        tint = if (isImageGenMode) GreenHighlight else TextSecondary,
+                                        tint = if (activeGenMode != ActiveGenerationMode.NONE) ForestGreenPrimary else SlateTextSecondary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -655,20 +698,21 @@ fun MainChatScreen(
                                 placeholder = {
                                     Text(
                                         text = when {
-                                            isImageGenMode -> "Describe the image to generate…"
+                                            activeGenMode == ActiveGenerationMode.IMAGE -> "Describe the image to generate…"
+                                            activeGenMode == ActiveGenerationMode.VIDEO -> "Describe the video scene to animate…"
                                             uiState.attachedFile != null -> "Ask about this file or send…"
                                             else -> strings.inputPlaceholder
                                         },
                                         fontSize = 14.sp,
-                                        color = if (isImageGenMode) GreenHighlight.copy(alpha = 0.7f) else TextMuted
+                                        color = if (activeGenMode != ActiveGenerationMode.NONE) ForestGreenPrimary.copy(alpha = 0.8f) else SlateTextSecondary
                                     )
                                 },
                                 maxLines = 5,
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = Color.Transparent,
                                     unfocusedBorderColor = Color.Transparent,
-                                    focusedTextColor = TextPrimary,
-                                    unfocusedTextColor = TextPrimary,
+                                    focusedTextColor = CharcoalTextPrimary,
+                                    unfocusedTextColor = CharcoalTextPrimary,
                                     focusedContainerColor = Color.Transparent,
                                     unfocusedContainerColor = Color.Transparent
                                 ),
@@ -682,12 +726,12 @@ fun MainChatScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                // Live Mode Wave Pill Button - Clean neutral secondary action (Requirement 6)
+                                // Live Mode Wave Pill Button - Clean neutral secondary action
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(16.dp))
-                                        .background(DarkSurfaceElevated)
-                                        .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(16.dp))
+                                        .background(PaleSage)
+                                        .border(1.dp, WarmBorder, RoundedCornerShape(16.dp))
                                         .bounceClick { requestMicAndExecute(liveMode = true) }
                                         .padding(horizontal = 10.dp, vertical = 6.dp)
                                         .testTag("live_talk_button"),
@@ -697,13 +741,13 @@ fun MainChatScreen(
                                         Icon(
                                             imageVector = Icons.Default.GraphicEq,
                                             contentDescription = "Live Talk",
-                                            tint = TextSecondary,
+                                            tint = ForestGreenPrimary,
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(
                                             text = "Live",
-                                            color = TextSecondary,
+                                            color = ForestGreenPrimary,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -717,18 +761,18 @@ fun MainChatScreen(
                                         .testTag("mic_button")
                                         .size(38.dp)
                                         .clip(CircleShape)
-                                        .background(if (uiState.isRecording) Color(0xFFDC2626) else DarkSurface)
+                                        .background(if (uiState.isRecording) Color(0xFFDC2626) else PaleSage)
                                         .bounceClick()
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Mic,
                                         contentDescription = "Record Voice",
-                                        tint = if (uiState.isRecording) Color.White else TextSecondary,
+                                        tint = if (uiState.isRecording) PureWhite else SlateTextSecondary,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
 
-                                // Send or Stop Button - Solid Green Fill reserved for Primary CTA (Requirement 1 & 6)
+                                // Send or Stop Button - Solid Forest Green Fill (Requirement 3)
                                 val canSend = inputText.isNotBlank() || uiState.attachedFile != null
                                 IconButton(
                                     onClick = {
@@ -736,13 +780,28 @@ fun MainChatScreen(
                                         if (uiState.isGenerating) {
                                             viewModel.cancelGeneration()
                                         } else if (canSend) {
-                                            if (isImageGenMode) {
-                                                viewModel.generateImage(inputText.trim())
-                                                inputText = ""
-                                                isImageGenMode = false
-                                            } else {
-                                                viewModel.sendMessage(inputText)
-                                                inputText = ""
+                                            val trimmed = inputText.trim()
+                                            when {
+                                                activeGenMode == ActiveGenerationMode.IMAGE || trimmed.startsWith("/image ") -> {
+                                                    val prompt = if (trimmed.startsWith("/image ")) trimmed.removePrefix("/image ").trim() else trimmed
+                                                    if (prompt.isNotBlank()) {
+                                                        viewModel.generateImage(prompt)
+                                                    }
+                                                    inputText = ""
+                                                    activeGenMode = ActiveGenerationMode.NONE
+                                                }
+                                                activeGenMode == ActiveGenerationMode.VIDEO || trimmed.startsWith("/video ") -> {
+                                                    val prompt = if (trimmed.startsWith("/video ")) trimmed.removePrefix("/video ").trim() else trimmed
+                                                    if (prompt.isNotBlank()) {
+                                                        viewModel.generateVideo(prompt)
+                                                    }
+                                                    inputText = ""
+                                                    activeGenMode = ActiveGenerationMode.NONE
+                                                }
+                                                else -> {
+                                                    viewModel.sendMessage(inputText)
+                                                    inputText = ""
+                                                }
                                             }
                                         }
                                     },
@@ -752,15 +811,15 @@ fun MainChatScreen(
                                         .clip(CircleShape)
                                         .background(
                                             if (uiState.isGenerating) Color(0xFFDC2626)
-                                            else if (canSend) GreenBright
-                                            else DarkSurfaceElevated
+                                            else if (canSend) ForestGreenPrimary
+                                            else PaleSage
                                         )
                                         .bounceClick()
                                 ) {
                                     Icon(
                                         imageVector = if (uiState.isGenerating) Icons.Default.Stop else Icons.AutoMirrored.Filled.Send,
                                         contentDescription = if (uiState.isGenerating) "Stop" else "Send",
-                                        tint = if (canSend) Color.Black else if (uiState.isGenerating) Color.White else TextMuted,
+                                        tint = if (uiState.isGenerating || canSend) PureWhite else SlateTextSecondary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -768,15 +827,17 @@ fun MainChatScreen(
                         }
                     }
 
-                    // Disclaimer text
-                    Text(
-                        text = strings.disclaimer,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextMuted,
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(top = 8.dp)
-                    )
+                    // Disclaimer text (hidden when keyboard is open to keep composer pinned immediately above keyboard)
+                    if (!isImeVisible) {
+                        Text(
+                            text = strings.disclaimer,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextMuted,
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .padding(top = 6.dp)
+                        )
+                    }
                 }
             },
             modifier = modifier.fillMaxSize()
@@ -791,7 +852,8 @@ fun MainChatScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 24.dp),
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
@@ -1047,36 +1109,27 @@ fun MainChatScreen(
         )
     }
 
-    // Attachment Picker Dialog (Image, PDF, TXT, AI Image Gen, AI Video)
+    // Attachment Picker Dialog (Camera, Photos, Files)
     if (showAttachMenu) {
         AttachmentPickerDialog(
             currentPlan = uiState.currentPlan,
             dailyUploadUsage = uiState.dailyUploadUsage,
             dailyUploadLimit = uiState.dailyUploadLimit,
-            onSelectImage = {
+            onSelectCamera = {
+                if (viewModel.checkUploadQuota()) {
+                    cameraLauncher.launch(null)
+                }
+            },
+            onSelectPhotos = {
                 if (viewModel.checkUploadQuota()) {
                     imagePickerLauncher.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
                 }
             },
-            onSelectPdf = {
+            onSelectFiles = {
                 if (viewModel.checkUploadQuota()) {
-                    docPickerLauncher.launch(arrayOf("application/pdf"))
-                }
-            },
-            onSelectText = {
-                if (viewModel.checkUploadQuota()) {
-                    docPickerLauncher.launch(arrayOf("text/plain", "text/*"))
-                }
-            },
-            onOpenImageGenerator = {
-                isImageGenMode = true
-            },
-            onVideoCreationClick = {
-                inputText = "/video "
-                scope.launch {
-                    snackbarHostState.showSnackbar("🎬 Type your prompt after /video and tap Send to render an 8s video!")
+                    docPickerLauncher.launch(arrayOf("application/pdf", "text/plain", "text/*", "*/*"))
                 }
             },
             onDismiss = { showAttachMenu = false },

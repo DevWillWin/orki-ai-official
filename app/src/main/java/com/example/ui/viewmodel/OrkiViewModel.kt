@@ -144,6 +144,7 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
     init {
         viewModelScope.launch {
             apiService.warmUpEdgeFunctions()
+            imageService.warmUp()
         }
         billingManager.startConnection()
         viewModelScope.launch {
@@ -357,6 +358,36 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.value = _uiState.value.copy(
                     isProcessingFile = false,
                     errorMessage = "Could not process file. Please select a valid Image, TXT, or PDF file."
+                )
+            }
+        }
+    }
+
+    fun attachCapturedBitmap(bitmap: android.graphics.Bitmap) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isProcessingFile = true)
+                val file = java.io.File(getApplication<android.app.Application>().cacheDir, "camera_${System.currentTimeMillis()}.jpg")
+                java.io.FileOutputStream(file).use { out ->
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+                    out.flush()
+                }
+                val attached = FileUploadHelper.processUri(getApplication(), android.net.Uri.fromFile(file))
+                if (attached != null) {
+                    _uiState.value = _uiState.value.copy(
+                        attachedFile = attached,
+                        isProcessingFile = false
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isProcessingFile = false,
+                        errorMessage = "Could not process captured photo."
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isProcessingFile = false,
+                    errorMessage = "Failed to attach photo: ${e.localizedMessage}"
                 )
             }
         }
@@ -653,11 +684,15 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
                     workerUrl = prefs.imageWorkerUrl,
                     apiKey = prefs.imageApiKey,
                     pollinationsKey = prefs.pollinationsApiKey,
+                    preferredEngine = prefs.imageEnginePreference,
+                    azureEndpoint = prefs.azureOpenAiEndpoint,
+                    azureKey = prefs.azureOpenAiKey,
+                    azureDalleDeployment = prefs.azureDalleDeployment,
                     onStatusUpdate = { stageText, isFallback ->
                         _uiState.value = _uiState.value.copy(
                             imageGenStage = stageText,
                             isImageGenFallback = isFallback,
-                            imageGenEngine = if (isFallback) "Pollinations AI (Backup)" else "Orki AI (Cloudflare)"
+                            imageGenEngine = if (isFallback) "Orki Fallback Engine" else if (prefs.imageEnginePreference == "azure_dalle") "Azure OpenAI (DALL-E 3)" else "Perchance AI (Primary Free)"
                         )
                     }
                 )
@@ -667,22 +702,15 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
                     val imageFile = generated.file
                     _uiState.value = _uiState.value.copy(
                         imageGenProgress = 100,
-                        imageGenStage = if (generated.isFallback) "Artwork generated via Pollinations AI backup!" else "Artwork generated! Rendering..."
+                        imageGenStage = "Artwork generated via ${generated.engineName}!",
+                        imageGenEngine = generated.engineName
                     )
                     delay(250)
 
                     val responseText = if (enhancedPrompt.equals(trimmed, ignoreCase = true)) {
-                        if (generated.isFallback) {
-                            "Here is your generated image for: \"$trimmed\"\n*(Generated via Pollinations AI backup engine)*"
-                        } else {
-                            "Here is your generated image for: \"$trimmed\""
-                        }
+                        "Here is your generated image for: \"$trimmed\"\n\n🎨 *Rendered via ${generated.engineName}*"
                     } else {
-                        if (generated.isFallback) {
-                            "Here is your generated image for: \"$trimmed\"\n\n✨ **Enhanced prompt used:**\n$enhancedPrompt\n\n*(Generated via Pollinations AI backup engine)*"
-                        } else {
-                            "Here is your generated image for: \"$trimmed\"\n\n✨ **Enhanced prompt used:**\n$enhancedPrompt"
-                        }
+                        "Here is your generated image for: \"$trimmed\"\n\n✨ **Enhanced prompt used:**\n$enhancedPrompt\n\n🎨 *Rendered via ${generated.engineName}*"
                     }
 
                     val assistantMessage = ChatMessageEntity(

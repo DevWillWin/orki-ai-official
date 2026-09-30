@@ -53,10 +53,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.data.preferences.UserPreferences
 import com.example.data.preferences.VoiceOptions
 import com.example.ui.theme.AmberPro
 import com.example.ui.theme.AmberProLight
@@ -93,6 +95,12 @@ fun SettingsDialog(
     var persona by remember { mutableStateOf(initialPersona) }
     var voice by remember { mutableStateOf(initialVoice) }
     var lastPreviewedVoiceId by remember { mutableStateOf<String?>(null) }
+
+    val context = LocalContext.current
+    val prefs = remember { UserPreferences(context) }
+    var imageEngine by remember { mutableStateOf(prefs.imageEnginePreference) }
+    var dalleDeployment by remember { mutableStateOf(prefs.azureDalleDeployment) }
+    var soraDeployment by remember { mutableStateOf(prefs.azureSoraDeployment) }
 
     val scrollState = rememberScrollState()
 
@@ -447,86 +455,84 @@ fun SettingsDialog(
                         }
                     }
 
-                    // SECTION 5: AI IMAGE GENERATION (DUAL ENGINE)
-                    SettingsSection(title = "AI IMAGE GENERATION (DUAL ENGINE)") {
+                    // SECTION 5: AI IMAGE GENERATION (PERCHANCE AI + CLOUDFLARE + POLLINATIONS)
+                    SettingsSection(title = "AI IMAGE GENERATION ENGINE") {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // Option 1: Perchance AI (Primary Default)
+                            val isPerchanceSelected = imageEngine == "auto" || imageEngine == "perchance"
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(DarkCanvas)
-                                    .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(10.dp))
-                                    .padding(10.dp),
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isPerchanceSelected) Color(0x2210B981) else DarkCanvas)
+                                    .border(
+                                        width = if (isPerchanceSelected) 1.5.dp else 1.dp,
+                                        color = if (isPerchanceSelected) GreenHighlight else DarkSurfaceBorder,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable { imageEngine = "auto" }
+                                    .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(32.dp)
+                                        .size(34.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0x2210B981)),
+                                        .background(Color(0x3310B981)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.AutoAwesome,
                                         contentDescription = null,
                                         tint = GreenHighlight,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text("Primary Engine: Cloudflare Workers AI", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = TextPrimary)
-                                    Text("Worker: orki-img-gen.devmightwin.workers.dev", fontSize = 10.sp, color = TextSecondary)
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("Perchance AI", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(Color(0x3310B981))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text("PRIMARY • UNLIMITED FREE", fontSize = 9.sp, color = GreenHighlight, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    Text("Runs in background with automatic warm-up & zero quota limits", fontSize = 10.sp, color = TextSecondary)
                                 }
-                            }
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(DarkCanvas)
-                                    .border(1.dp, AmberPro.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
-                                    .padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0x22F59E0B)),
-                                    contentAlignment = Alignment.Center
-                                ) {
+                                if (isPerchanceSelected) {
                                     Icon(
-                                        imageVector = Icons.Default.Sync,
-                                        contentDescription = null,
-                                        tint = AmberPro,
-                                        modifier = Modifier.size(16.dp)
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = GreenHighlight,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text("Auto-Fallback Engine: Pollinations.AI", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = TextPrimary)
-                                    Text("Active Fallback • Key Active", fontSize = 10.sp, color = AmberProLight)
-                                }
                             }
-                        }
-                    }
 
-                    // SECTION 6: AI VIDEO GENERATION (JSON2VIDEO + BYTEZ FALLBACK)
-                    SettingsSection(title = "AI VIDEO GENERATION (DUAL ENGINE)") {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // Option 2: Cloudflare Workers AI (2nd Engine)
+                            val isCfSelected = imageEngine == "cloudflare"
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(DarkCanvas)
-                                    .border(1.dp, Color(0x5506B6D4), RoundedCornerShape(10.dp))
-                                    .padding(10.dp),
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isCfSelected) Color(0x2206B6D4) else DarkCanvas)
+                                    .border(
+                                        width = if (isCfSelected) 1.5.dp else 1.dp,
+                                        color = if (isCfSelected) Color(0xFF06B6D4) else DarkSurfaceBorder,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable { imageEngine = "cloudflare" }
+                                    .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(32.dp)
+                                        .size(34.dp)
                                         .clip(CircleShape)
                                         .background(Color(0x2206B6D4)),
                                     contentAlignment = Alignment.Center
@@ -535,28 +541,128 @@ fun SettingsDialog(
                                         imageVector = Icons.Default.PlayArrow,
                                         contentDescription = null,
                                         tint = Color(0xFF06B6D4),
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text("Primary Engine: Json2video AI Studio", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = TextPrimary)
-                                    Text("600s Quota (~60 videos) • 8s Cinematic MP4 • Key: I8It...q4w", fontSize = 10.sp, color = Color(0xFF67E8F9))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("Cloudflare Workers AI", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(Color(0x3306B6D4))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text("2ND FALLBACK", fontSize = 9.sp, color = Color(0xFF67E8F9), fontWeight = FontWeight.SemiBold)
+                                        }
+                                    }
+                                    Text("Fast SDXL/Flux via orki-img-gen worker", fontSize = 10.sp, color = TextSecondary)
+                                }
+                                if (isCfSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = Color(0xFF06B6D4),
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 }
                             }
 
+                            // Option 3: Azure OpenAI DALL-E 3
+                            val isDalleSelected = imageEngine == "azure_dalle"
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isDalleSelected) Color(0x228B5CF6) else DarkCanvas)
+                                    .border(
+                                        width = if (isDalleSelected) 1.5.dp else 1.dp,
+                                        color = if (isDalleSelected) Color(0xFFA78BFA) else DarkSurfaceBorder,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable { imageEngine = "azure_dalle" }
+                                    .padding(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0x338B5CF6)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.AutoAwesome,
+                                            contentDescription = null,
+                                            tint = Color(0xFFA78BFA),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text("Azure OpenAI DALL-E 3", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .background(Color(0x33A78BFA))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Text("CUSTOM • $0.04/img", fontSize = 9.sp, color = Color(0xFFDDD6FE), fontWeight = FontWeight.SemiBold)
+                                            }
+                                        }
+                                        Text("Ultra-photorealistic 1024x1024 synthesis via your Azure key", fontSize = 10.sp, color = TextSecondary)
+                                    }
+                                    if (isDalleSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Selected",
+                                            tint = Color(0xFFA78BFA),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+
+                                if (isDalleSelected) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    OutlinedTextField(
+                                        value = dalleDeployment,
+                                        onValueChange = { dalleDeployment = it },
+                                        label = { Text("Azure DALL-E Deployment Name", fontSize = 11.sp) },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = Color(0xFFA78BFA),
+                                            unfocusedBorderColor = DarkSurfaceBorder,
+                                            focusedTextColor = TextPrimary,
+                                            unfocusedTextColor = TextPrimary,
+                                            cursorColor = Color(0xFFA78BFA),
+                                            focusedLabelColor = Color(0xFFA78BFA)
+                                        ),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                }
+                            }
+
+                            // Option 4: Emergency Backup status
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(DarkCanvas)
-                                    .border(1.dp, AmberPro.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                                    .border(1.dp, AmberPro.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
                                     .padding(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(32.dp)
+                                        .size(28.dp)
                                         .clip(CircleShape)
                                         .background(Color(0x22F59E0B)),
                                     contentAlignment = Alignment.Center
@@ -565,14 +671,82 @@ fun SettingsDialog(
                                         imageVector = Icons.Default.Sync,
                                         contentDescription = null,
                                         tint = AmberPro,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(14.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
-                                    Text("Backup Engine: Bytez / Pollinations Video", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = TextPrimary)
-                                    Text("1 Request at a time limit • Key: f55b...8b51", fontSize = 10.sp, color = AmberProLight)
+                                    Text("Emergency Backup: Pollinations.AI", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = TextPrimary)
+                                    Text("Active Fallback • Ensures 100% uptime if all other engines fail", fontSize = 9.sp, color = AmberProLight)
                                 }
+                            }
+                        }
+                    }
+
+                    // SECTION 6: AI VIDEO GENERATION (AZURE SORA 2 + JSON2VIDEO)
+                    SettingsSection(title = "AI VIDEO GENERATION") {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0x2206B6D4))
+                                    .border(1.5.dp, Color(0xFF06B6D4), RoundedCornerShape(12.dp))
+                                    .padding(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0x3306B6D4)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.PlayArrow,
+                                            contentDescription = null,
+                                            tint = Color(0xFF06B6D4),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text("Azure OpenAI Sora 2", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .background(Color(0x3306B6D4))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Text("ACTIVE ENGINE", fontSize = 9.sp, color = Color(0xFF67E8F9), fontWeight = FontWeight.SemiBold)
+                                            }
+                                        }
+                                        Text("Cinematic 1080p AI Video via orkiai.openai.azure.com", fontSize = 10.sp, color = TextSecondary)
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+                                OutlinedTextField(
+                                    value = soraDeployment,
+                                    onValueChange = { soraDeployment = it },
+                                    label = { Text("Azure Sora Deployment Name", fontSize = 11.sp) },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Color(0xFF06B6D4),
+                                        unfocusedBorderColor = DarkSurfaceBorder,
+                                        focusedTextColor = TextPrimary,
+                                        unfocusedTextColor = TextPrimary,
+                                        cursorColor = Color(0xFF06B6D4),
+                                        focusedLabelColor = Color(0xFF06B6D4)
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
                             }
                         }
                     }
@@ -608,6 +782,9 @@ fun SettingsDialog(
 
                         Button(
                             onClick = {
+                                prefs.imageEnginePreference = imageEngine
+                                prefs.azureDalleDeployment = dalleDeployment.trim().ifEmpty { "dall-e-3" }
+                                prefs.azureSoraDeployment = soraDeployment.trim().ifEmpty { "sora-2" }
                                 onSave(script, uiLang, name.trim(), persona.trim(), voice)
                                 onDismiss()
                             },

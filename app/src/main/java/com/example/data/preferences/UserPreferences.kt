@@ -187,6 +187,14 @@ class UserPreferences(context: Context) {
         get() = prefs.getString("azure_sora_deployment", "sora-2") ?: "sora-2"
         set(value) = prefs.edit().putString("azure_sora_deployment", value).apply()
 
+    var azureDalleDeployment: String
+        get() = prefs.getString("azure_dalle_deployment", "dall-e-3") ?: "dall-e-3"
+        set(value) = prefs.edit().putString("azure_dalle_deployment", value).apply()
+
+    var imageEnginePreference: String // "auto" (Cloudflare -> Pollinations), "azure_dalle" (Azure DALL-E 3 -> Fallbacks)
+        get() = prefs.getString("image_engine_preference", "auto") ?: "auto"
+        set(value) = prefs.edit().putString("image_engine_preference", value).apply()
+
     var userEmail: String
         get() = if (isLoggedIn) (prefs.getString("user_email", "") ?: "") else ""
         set(value) = prefs.edit().putString("user_email", value).apply()

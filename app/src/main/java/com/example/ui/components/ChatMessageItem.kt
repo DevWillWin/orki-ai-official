@@ -98,7 +98,7 @@ fun ChatMessageItem(
     var isCopied by remember { mutableStateOf(false) }
 
     if (isUser) {
-        // User message: Sleek right-aligned rounded pill with layered neutral dark surface (Requirement 1, 3, 4)
+        // User message: Sleek right-aligned rounded bubble with Pale Sage surface (#EEF3EB)
         Row(
             modifier = modifier
                 .fillMaxWidth()
@@ -109,8 +109,8 @@ fun ChatMessageItem(
                 modifier = Modifier
                     .widthIn(max = 320.dp)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(DarkSurfaceElevated)
-                    .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(20.dp))
+                    .background(com.example.ui.theme.PaleSage)
+                    .border(1.dp, com.example.ui.theme.SageGreen, RoundedCornerShape(20.dp))
                     .padding(horizontal = 14.dp, vertical = 11.dp)
             ) {
                 // If attachment is present, render attachment header
@@ -129,21 +129,22 @@ fun ChatMessageItem(
                 if (message.text.isNotBlank()) {
                     Text(
                         text = message.text,
-                        color = Color.White,
+                        color = com.example.ui.theme.CharcoalTextPrimary,
                         fontSize = 15.sp,
-                        lineHeight = 22.sp
+                        lineHeight = 22.sp,
+                        fontWeight = FontWeight.Normal
                     )
                 }
             }
         }
     } else {
-        // Assistant message: Full-width flowing ChatGPT/Claude style layout
+        // Assistant message: Clean ChatGPT-style layout displayed directly on ivory background
         Column(
             modifier = modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
-            // Header: Avatar + Model Name + Monogram
+            // Header: Minimalist Avatar Badge + Orki AI Label
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -152,14 +153,14 @@ fun ChatMessageItem(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(CircleShape)
-                        .background(DarkSurfaceVariant)
-                        .border(1.dp, DarkSurfaceBorder, CircleShape),
+                        .background(com.example.ui.theme.PaleSage)
+                        .border(1.dp, com.example.ui.theme.SageGreen, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = "Orki AI",
-                        tint = TextPrimary,
+                        tint = com.example.ui.theme.ForestGreenPrimary,
                         modifier = Modifier.size(15.dp)
                     )
                 }
@@ -170,7 +171,7 @@ fun ChatMessageItem(
                     text = "Orki AI",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary
+                    color = com.example.ui.theme.CharcoalTextPrimary
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -178,15 +179,14 @@ fun ChatMessageItem(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(DarkSurfaceElevated)
-                        .border(1.dp, DarkBorderSubtle, RoundedCornerShape(6.dp))
+                        .background(com.example.ui.theme.PaleSage)
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
                         text = "Assistant",
-                        color = TextMuted,
+                        color = com.example.ui.theme.ForestGreenPrimary,
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -210,17 +210,17 @@ fun ChatMessageItem(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // Message text body formatted with clean typography
+            // Message text body formatted directly on the canvas background
             val formattedText = formatMarkdownText(message.text)
             Text(
                 text = formattedText,
-                color = TextPrimary,
+                color = com.example.ui.theme.CharcoalTextPrimary,
                 fontSize = 15.sp,
                 lineHeight = 24.sp,
                 modifier = Modifier.padding(start = 2.dp, bottom = 8.dp)
             )
 
-            // Bottom Action Bar: Listen & Copy buttons with spring bounce feedback
+            // Bottom Action Bar: Listen & Copy buttons in subtle pills
             if (message.text.isNotBlank()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -232,8 +232,8 @@ fun ChatMessageItem(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(DarkSurfaceVariant)
-                            .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(8.dp))
+                            .background(com.example.ui.theme.PureWhite)
+                            .border(1.dp, com.example.ui.theme.WarmBorder, RoundedCornerShape(8.dp))
                             .bounceClick {
                                 onPlayTts(message.ttsText ?: message.text)
                             }
@@ -242,13 +242,13 @@ fun ChatMessageItem(
                         Icon(
                             imageVector = Icons.Default.VolumeUp,
                             contentDescription = "Listen",
-                            tint = TextSecondary,
+                            tint = com.example.ui.theme.SlateTextSecondary,
                             modifier = Modifier.size(15.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Listen",
-                            color = TextSecondary,
+                            color = com.example.ui.theme.SlateTextSecondary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -259,8 +259,8 @@ fun ChatMessageItem(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(DarkSurfaceVariant)
-                            .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(8.dp))
+                            .background(com.example.ui.theme.PureWhite)
+                            .border(1.dp, com.example.ui.theme.WarmBorder, RoundedCornerShape(8.dp))
                             .bounceClick {
                                 clipboardManager.setText(AnnotatedString(message.text))
                                 isCopied = true
@@ -274,13 +274,13 @@ fun ChatMessageItem(
                         Icon(
                             imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
                             contentDescription = "Copy text",
-                            tint = if (isCopied) GreenHighlight else TextMuted,
+                            tint = if (isCopied) com.example.ui.theme.ForestGreenPrimary else com.example.ui.theme.SlateTextSecondary,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = if (isCopied) "Copied" else "Copy",
-                            color = if (isCopied) GreenHighlight else TextSecondary,
+                            color = if (isCopied) com.example.ui.theme.ForestGreenPrimary else com.example.ui.theme.SlateTextSecondary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -511,8 +511,8 @@ fun GeneratedImageAssistantCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(DarkCanvas)
-            .border(1.dp, GreenBorder, RoundedCornerShape(16.dp))
+            .background(com.example.ui.theme.PureWhite)
+            .border(1.dp, com.example.ui.theme.WarmBorder, RoundedCornerShape(16.dp))
     ) {
         Box(
             modifier = Modifier
@@ -560,14 +560,14 @@ fun GeneratedImageAssistantCard(
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = GreenHighlight,
+                    tint = com.example.ui.theme.ForestGreenPrimary,
                     modifier = Modifier.size(13.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Generated with Orki AI Worker",
+                    text = "Generated with Orki AI",
                     fontSize = 11.sp,
-                    color = TextMuted
+                    color = com.example.ui.theme.SlateTextSecondary
                 )
             }
 
@@ -577,8 +577,8 @@ fun GeneratedImageAssistantCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(DarkSurfaceElevated)
-                        .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(8.dp))
+                        .background(com.example.ui.theme.PaleSage)
+                        .border(1.dp, com.example.ui.theme.SageGreen, RoundedCornerShape(8.dp))
                         .clickable {
                             scope.launch {
                                 val file = File(imageUri)
@@ -600,13 +600,13 @@ fun GeneratedImageAssistantCard(
                     Icon(
                         imageVector = if (isSaved) Icons.Default.Check else Icons.Default.Download,
                         contentDescription = "Save image",
-                        tint = if (isSaved) GreenHighlight else TextSecondary,
+                        tint = if (isSaved) com.example.ui.theme.ForestGreenPrimary else com.example.ui.theme.SlateTextSecondary,
                         modifier = Modifier.size(13.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = if (isSaved) "Saved" else "Save",
-                        color = if (isSaved) GreenHighlight else TextSecondary,
+                        color = if (isSaved) com.example.ui.theme.ForestGreenPrimary else com.example.ui.theme.SlateTextSecondary,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -636,7 +636,7 @@ fun GeneratedImageAssistantCard(
                     Icon(
                         imageVector = Icons.Default.Share,
                         contentDescription = "Share",
-                        tint = TextSecondary,
+                        tint = com.example.ui.theme.SlateTextSecondary,
                         modifier = Modifier.size(15.dp)
                     )
                 }

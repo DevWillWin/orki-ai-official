@@ -1,5 +1,10 @@
 package com.example.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,15 +21,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -33,276 +34,176 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.example.ui.components.bounceClick
+import androidx.compose.ui.window.DialogProperties
 import com.example.ui.theme.AmberPro
-import com.example.ui.theme.DarkBorderSubtle
-import com.example.ui.theme.DarkCanvas
-import com.example.ui.theme.DarkSurface
-import com.example.ui.theme.DarkSurfaceBorder
-import com.example.ui.theme.DarkSurfaceElevated
-import com.example.ui.theme.DarkSurfaceVariant
-import com.example.ui.theme.EmeraldAccent
-import com.example.ui.theme.EmeraldPrimary
-import com.example.ui.theme.GreenBorder
-import com.example.ui.theme.GreenBorderGlow
-import com.example.ui.theme.GreenBright
-import com.example.ui.theme.GreenHighlight
-import com.example.ui.theme.GreenMuted
-import com.example.ui.theme.GreenSurfaceElevated
-import com.example.ui.theme.GreenSurfaceTint
-import com.example.ui.theme.GreenTextMuted
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.CharcoalTextPrimary
+import com.example.ui.theme.ForestGreenDeep
+import com.example.ui.theme.ForestGreenPrimary
+import com.example.ui.theme.PaleSage
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.SageGreen
+import com.example.ui.theme.SlateTextSecondary
+import com.example.ui.theme.WarmBorder
+import com.example.ui.theme.WarmBorderSubtle
 
 @Composable
 fun AttachmentPickerDialog(
     currentPlan: String,
     dailyUploadUsage: Int,
     dailyUploadLimit: Int,
-    onSelectImage: () -> Unit,
-    onSelectPdf: () -> Unit,
-    onSelectText: () -> Unit,
-    onOpenImageGenerator: () -> Unit = {},
-    onVideoCreationClick: () -> Unit = {},
+    isThinkHarderActive: Boolean = false,
+    onSelectCamera: () -> Unit,
+    onSelectPhotos: () -> Unit,
+    onSelectFiles: () -> Unit,
+    onToggleThinkHarder: () -> Unit = {},
     onDismiss: () -> Unit,
     onUpgradeClick: () -> Unit
 ) {
     val remaining = (dailyUploadLimit - dailyUploadUsage).coerceAtLeast(0)
     val isLimitReached = dailyUploadUsage >= dailyUploadLimit
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(22.dp),
-            color = DarkSurface,
-            border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceBorder),
-            modifier = Modifier.fillMaxWidth()
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = PureWhite,
+                border = androidx.compose.foundation.BorderStroke(1.dp, WarmBorder),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 12.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        ambientColor = Color(0x15000000),
+                        spotColor = Color(0x20000000)
+                    )
             ) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Column {
-                        Text(
-                            text = "Add Attachment",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Images, text files, or PDFs",
-                            fontSize = 12.sp,
-                            color = TextMuted
-                        )
-                    }
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.size(32.dp).bounceClick()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
-                            tint = TextMuted,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-
-                // Upload Quota Status Pill
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(if (isLimitReached) Color(0x22EF4444) else DarkSurfaceVariant)
-                        .border(
-                            1.dp,
-                            if (isLimitReached) Color(0x66EF4444) else DarkSurfaceBorder,
-                            RoundedCornerShape(14.dp)
-                        )
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                ) {
+                    // Header with title and close button
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "$currentPlan Plan Uploads",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (isLimitReached) Color(0xFFF87171) else TextPrimary
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(if (currentPlan == "Pro") AmberPro.copy(alpha = 0.2f) else DarkSurfaceElevated)
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = currentPlan,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (currentPlan == "Pro") AmberPro else TextSecondary
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = if (isLimitReached) {
-                                    "Limit reached ($dailyUploadLimit/$dailyUploadLimit used). Upgrade to get more!"
-                                } else {
-                                    "$remaining of $dailyUploadLimit uploads remaining today"
-                                },
-                                fontSize = 11.sp,
-                                color = if (isLimitReached) Color(0xFFFCA5A5) else TextSecondary
+                                text = "Attach to message",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = CharcoalTextPrimary
+                            )
+                            Text(
+                                text = if (currentPlan == "Guest") "Guest: $remaining uploads left today" else "$currentPlan: $remaining/$dailyUploadLimit uploads left",
+                                fontSize = 12.sp,
+                                color = SlateTextSecondary
                             )
                         }
 
-                        if (currentPlan != "Pro") {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(DarkSurfaceElevated)
-                                    .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(8.dp))
-                                    .bounceClick {
-                                        onDismiss()
-                                        onUpgradeClick()
-                                    }
-                                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                            ) {
-                                Text(
-                                    text = "Upgrade",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary
-                                )
-                            }
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(PaleSage)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = SlateTextSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
-                }
 
-                // File Type Options
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    FileTypeOptionCard(
-                        icon = Icons.Default.Image,
-                        iconTint = TextPrimary,
-                        iconBg = DarkSurfaceElevated,
-                        title = "Images & Photos",
-                        subtitle = "JPEG, PNG, WebP • Visual recognition & OCR",
-                        badge = "Photo Picker",
-                        onClick = {
-                            onDismiss()
-                            onSelectImage()
-                        }
-                    )
-
-                    FileTypeOptionCard(
-                        icon = Icons.Default.PictureAsPdf,
-                        iconTint = Color(0xFFF87171),
-                        iconBg = Color(0x22EF4444),
-                        title = "PDF Document",
-                        subtitle = "PDF • Multi-page document reasoning & summary",
-                        badge = "Document",
-                        onClick = {
-                            onDismiss()
-                            onSelectPdf()
-                        }
-                    )
-
-                    FileTypeOptionCard(
-                        icon = Icons.Default.Description,
-                        iconTint = Color(0xFF38BDF8),
-                        iconBg = Color(0x2238BDF8),
-                        title = "Text File",
-                        subtitle = "TXT, Markdown, JSON, Code • Text extraction",
-                        badge = "Text / Code",
-                        onClick = {
-                            onDismiss()
-                            onSelectText()
-                        }
-                    )
-
-                    FileTypeOptionCard(
-                        icon = Icons.Default.AutoAwesome,
-                        iconTint = GreenHighlight,
-                        iconBg = GreenSurfaceElevated,
-                        title = "AI Image Generator",
-                        subtitle = "Cloudflare Worker • Synthesize images from text prompts",
-                        badge = "AI Worker",
-                        onClick = {
-                            onDismiss()
-                            onOpenImageGenerator()
-                        }
-                    )
-
-                    val isGuest = currentPlan == "Guest"
-                    FileTypeOptionCard(
-                        icon = if (isGuest) Icons.Default.Lock else Icons.Default.Videocam,
-                        iconTint = if (isGuest) Color(0xFFF87171) else AmberPro,
-                        iconBg = if (isGuest) Color(0x22EF4444) else Color(0x22F59E0B),
-                        title = "AI Video Creation",
-                        subtitle = if (isGuest) "Locked for Guests • Sign in to create videos" else "Generate 1080p AI Video sequences",
-                        badge = if (isGuest) "Members Only" else "Pro Tier",
-                        onClick = {
-                            onDismiss()
-                            onVideoCreationClick()
-                        }
-                    )
-                }
-
-                // Footer helper
-                if (currentPlan == "Free") {
+                    // 4-item or 5-item Grid inspired by modern ChatGPT attachment popups
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(DarkSurfaceVariant)
-                            .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(10.dp))
-                            .bounceClick {
-                                onDismiss()
-                                onUpgradeClick()
-                            }
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Bolt,
-                                contentDescription = null,
-                                tint = AmberPro,
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                        // 1. Camera
+                        AttachmentIconOption(
+                            label = "Camera",
+                            icon = Icons.Default.CameraAlt,
+                            onClick = {
+                                onDismiss()
+                                onSelectCamera()
+                            }
+                        )
+
+                        // 2. Photos (Gallery)
+                        AttachmentIconOption(
+                            label = "Photos",
+                            icon = Icons.Default.Image,
+                            onClick = {
+                                onDismiss()
+                                onSelectPhotos()
+                            }
+                        )
+
+                        // 3. Files (SAF Docs)
+                        AttachmentIconOption(
+                            label = "Files",
+                            icon = Icons.Default.Description,
+                            onClick = {
+                                onDismiss()
+                                onSelectFiles()
+                            }
+                        )
+
+                        // 4. Think harder (Reasoning toggle)
+                        AttachmentIconOption(
+                            label = "Think harder",
+                            icon = Icons.Default.Psychology,
+                            isActive = isThinkHarderActive,
+                            onClick = {
+                                onToggleThinkHarder()
+                                onDismiss()
+                            }
+                        )
+                    }
+
+                    // Upload Quota or Upgrade hint
+                    if (isLimitReached) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFFEF3C7))
+                                .border(1.dp, AmberPro.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                                .clickable {
+                                    onDismiss()
+                                    onUpgradeClick()
+                                }
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
-                                text = "Plus has 20 uploads & Pro has 100 uploads",
-                                fontSize = 11.sp,
-                                color = TextSecondary
+                                text = "Daily upload limit reached. Tap here to upgrade for unlimited uploads.",
+                                fontSize = 12.sp,
+                                color = AmberPro,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.weight(1f)
                             )
                         }
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            tint = TextMuted,
-                            modifier = Modifier.size(14.dp)
-                        )
                     }
                 }
             }
@@ -311,93 +212,48 @@ fun AttachmentPickerDialog(
 }
 
 @Composable
-private fun FileTypeOptionCard(
+private fun AttachmentIconOption(
+    label: String,
     icon: ImageVector,
-    iconTint: Color,
-    iconBg: Color,
-    title: String,
-    subtitle: String,
-    badge: String,
+    isActive: Boolean = false,
     onClick: () -> Unit
 ) {
-    Box(
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(DarkSurfaceVariant)
-            .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(16.dp))
-            .bounceClick(scaleDown = 0.98f, onClick = onClick)
-            .padding(14.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 6.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        // Circular icon container
+        Box(
+            modifier = Modifier
+                .size(54.dp)
+                .clip(CircleShape)
+                .background(if (isActive) ForestGreenPrimary else PaleSage)
+                .border(
+                    width = 1.dp,
+                    color = if (isActive) ForestGreenDeep else SageGreen,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(iconBg)
-                        .border(1.dp, DarkBorderSubtle, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = title,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(DarkSurfaceElevated)
-                                .border(1.dp, DarkBorderSubtle, RoundedCornerShape(4.dp))
-                                .padding(horizontal = 5.dp, vertical = 1.dp)
-                        ) {
-                            Text(
-                                text = badge,
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = TextSecondary
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = subtitle,
-                        fontSize = 10.sp,
-                        color = TextMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = TextMuted,
-                modifier = Modifier.size(16.dp)
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (isActive) PureWhite else ForestGreenPrimary,
+                modifier = Modifier.size(24.dp)
             )
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+            color = if (isActive) ForestGreenPrimary else CharcoalTextPrimary,
+            textAlign = TextAlign.Center
+        )
     }
 }
-

@@ -30,8 +30,6 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,30 +45,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.ConversationEntity
-import com.example.ui.components.bounceClick
 import com.example.ui.theme.AmberPro
-import com.example.ui.theme.DarkBorderSubtle
-import com.example.ui.theme.DarkCanvas
-import com.example.ui.theme.DarkElevated
-import com.example.ui.theme.DarkSurface
-import com.example.ui.theme.DarkSurfaceBorder
-import com.example.ui.theme.DarkSurfaceElevated
-import com.example.ui.theme.DarkSurfaceVariant
-import com.example.ui.theme.EmeraldAccent
-import com.example.ui.theme.EmeraldPrimary
-import com.example.ui.theme.GreenBorder
-import com.example.ui.theme.GreenBorderGlow
-import com.example.ui.theme.GreenBright
-import com.example.ui.theme.GreenHighlight
-import com.example.ui.theme.GreenMuted
-import com.example.ui.theme.GreenSurfaceElevated
-import com.example.ui.theme.GreenSurfaceTint
-import com.example.ui.theme.GreenTextMuted
+import com.example.ui.theme.CharcoalTextPrimary
+import com.example.ui.theme.ForestGreenDeep
+import com.example.ui.theme.ForestGreenPrimary
+import com.example.ui.theme.IvoryBackground
+import com.example.ui.theme.PaleSage
+import com.example.ui.theme.PureWhite
 import com.example.ui.theme.PurpleIncognito
 import com.example.ui.theme.PurpleIncognitoLight
+import com.example.ui.theme.SageGreen
+import com.example.ui.theme.SlateTextSecondary
 import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.WarmBorder
+import com.example.ui.theme.WarmBorderSubtle
 
 @Composable
 fun DrawerContent(
@@ -100,13 +88,14 @@ fun DrawerContent(
         modifier = modifier
             .fillMaxHeight()
             .width(310.dp)
-            .background(DarkSurface)
+            .background(IvoryBackground)
+            .border(width = 0.dp, color = Color.Transparent)
             .statusBarsPadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            // Header with modern AI Sparkle Logo
+            // Header with Orki AI Branding
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -115,16 +104,16 @@ fun DrawerContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(34.dp)
+                            .size(36.dp)
                             .clip(CircleShape)
-                            .background(DarkSurfaceVariant)
-                            .border(1.dp, DarkSurfaceBorder, CircleShape),
+                            .background(PaleSage)
+                            .border(1.dp, SageGreen, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
                             contentDescription = "Orki AI",
-                            tint = TextPrimary,
+                            tint = ForestGreenPrimary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -134,12 +123,12 @@ fun DrawerContent(
                             text = "Orki AI",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextPrimary
+                            color = CharcoalTextPrimary
                         )
                         Text(
                             text = "Bodo Conversational AI",
                             fontSize = 10.sp,
-                            color = TextMuted
+                            color = SlateTextSecondary
                         )
                     }
                 }
@@ -151,7 +140,7 @@ fun DrawerContent(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close sidebar",
-                        tint = TextSecondary,
+                        tint = SlateTextSecondary,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -163,11 +152,11 @@ fun DrawerContent(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(DarkSurfaceVariant)
-                    .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(12.dp))
-                    .bounceClick(scaleDown = 0.98f, onClick = onNewChat)
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(PureWhite)
+                    .border(1.dp, WarmBorder, RoundedCornerShape(14.dp))
+                    .clickable(onClick = onNewChat)
+                    .padding(horizontal = 14.dp, vertical = 11.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -178,13 +167,13 @@ fun DrawerContent(
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
-                            tint = TextPrimary,
+                            tint = ForestGreenPrimary,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "New chat",
-                            color = TextPrimary,
+                            color = CharcoalTextPrimary,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -194,23 +183,27 @@ fun DrawerContent(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(if (isIncognito) PurpleIncognito.copy(alpha = 0.25f) else DarkSurfaceElevated)
-                            .border(1.dp, if (isIncognito) PurpleIncognito else DarkBorderSubtle, RoundedCornerShape(8.dp))
-                            .bounceClick(scaleDown = 0.95f, onClick = onToggleIncognito)
+                            .background(if (isIncognito) PurpleIncognito.copy(alpha = 0.15f) else PaleSage)
+                            .border(
+                                1.dp,
+                                if (isIncognito) PurpleIncognito.copy(alpha = 0.4f) else SageGreen,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .clickable(onClick = onToggleIncognito)
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.VisibilityOff,
                                 contentDescription = "Incognito",
-                                tint = if (isIncognito) PurpleIncognitoLight else TextMuted,
+                                tint = if (isIncognito) PurpleIncognito else SlateTextSecondary,
                                 modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = if (isIncognito) "Incognito" else "Private",
                                 fontSize = 10.sp,
-                                color = if (isIncognito) PurpleIncognitoLight else TextMuted,
+                                color = if (isIncognito) PurpleIncognito else SlateTextSecondary,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -218,7 +211,7 @@ fun DrawerContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             // Conversations Section Header
             Row(
@@ -232,7 +225,7 @@ fun DrawerContent(
                     text = "Recent chats",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextMuted,
+                    color = SlateTextSecondary,
                     letterSpacing = 0.5.sp
                 )
 
@@ -247,21 +240,21 @@ fun DrawerContent(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Conversation Items List - Simplified plain list rows without heavy pill borders (Requirement 5)
+            // Conversation Items List
             if (isIncognito) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0x15A855F7))
-                        .border(1.dp, PurpleIncognito.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(PurpleIncognitoLight.copy(alpha = 0.5f))
+                        .border(1.dp, PurpleIncognito.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
                         .padding(14.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Incognito Active: Session history is not stored.",
                         fontSize = 12.sp,
-                        color = PurpleIncognitoLight
+                        color = PurpleIncognito
                     )
                 }
             } else if (conversations.isEmpty()) {
@@ -274,22 +267,27 @@ fun DrawerContent(
                     Text(
                         text = "No previous conversations",
                         fontSize = 12.sp,
-                        color = TextMuted
+                        color = SlateTextSecondary
                     )
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     items(conversations, key = { it.id }) { conv ->
                         val isSelected = conv.id == selectedConversationId
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) DarkSurfaceVariant else Color.Transparent)
-                                .bounceClick(scaleDown = 0.98f, onClick = { onSelectConversation(conv.id) })
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isSelected) PaleSage else Color.Transparent)
+                                .border(
+                                    width = if (isSelected) 1.dp else 0.dp,
+                                    color = if (isSelected) SageGreen else Color.Transparent,
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                .clickable { onSelectConversation(conv.id) }
                                 .padding(horizontal = 10.dp, vertical = 9.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -301,15 +299,15 @@ fun DrawerContent(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Chat,
                                     contentDescription = null,
-                                    tint = if (isSelected) GreenHighlight else TextMuted,
+                                    tint = if (isSelected) ForestGreenPrimary else SlateTextSecondary,
                                     modifier = Modifier.size(15.dp)
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text(
                                     text = conv.title,
-                                    color = if (isSelected) TextPrimary else TextSecondary,
+                                    color = if (isSelected) ForestGreenDeep else CharcoalTextPrimary,
                                     fontSize = 13.sp,
-                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -322,7 +320,7 @@ fun DrawerContent(
                                 Icon(
                                     imageVector = Icons.Default.DeleteOutline,
                                     contentDescription = "Delete chat",
-                                    tint = TextMuted,
+                                    tint = SlateTextSecondary,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -332,15 +330,18 @@ fun DrawerContent(
             }
         }
 
-        // Bottom Section: Quota Progress Bar & User / Settings Footer (Chatbot style)
-        Column {
-            // Refined Daily Quota Slider / Progress Bar
+        // Bottom Section: Quota Progress Bar, User Profile & Settings
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Daily Quota Box
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(DarkCanvas)
-                    .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(PureWhite)
+                    .border(1.dp, WarmBorder, RoundedCornerShape(14.dp))
                     .padding(12.dp)
             ) {
                 Column {
@@ -353,20 +354,20 @@ fun DrawerContent(
                             Text(
                                 text = "Daily Limit",
                                 fontSize = 11.sp,
-                                color = TextSecondary
+                                color = SlateTextSecondary
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(if (currentPlan == "Pro") AmberPro.copy(alpha = 0.2f) else DarkSurfaceElevated)
+                                    .background(if (currentPlan == "Pro") AmberPro.copy(alpha = 0.15f) else PaleSage)
                                     .padding(horizontal = 5.dp, vertical = 1.dp)
                             ) {
                                 Text(
                                     text = currentPlan,
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (currentPlan == "Pro") AmberPro else TextSecondary
+                                    color = if (currentPlan == "Pro") AmberPro else ForestGreenPrimary
                                 )
                             }
                         }
@@ -376,13 +377,12 @@ fun DrawerContent(
                             text = quotaText,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (dailyUsage >= dailyLimit) Color(0xFFEF4444) else TextSecondary
+                            color = if (dailyUsage >= dailyLimit) Color(0xFFDC2626) else SlateTextSecondary
                         )
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Sleek gradient progress bar
                     val progress = if (dailyLimit == Int.MAX_VALUE) 1f
                     else (dailyUsage.toFloat() / dailyLimit.toFloat()).coerceIn(0f, 1f)
 
@@ -391,7 +391,7 @@ fun DrawerContent(
                             .fillMaxWidth()
                             .height(4.dp)
                             .clip(RoundedCornerShape(2.dp))
-                            .background(DarkSurfaceVariant)
+                            .background(PaleSage)
                     ) {
                         Box(
                             modifier = Modifier
@@ -400,96 +400,51 @@ fun DrawerContent(
                                 .clip(RoundedCornerShape(2.dp))
                                 .background(
                                     Brush.horizontalGradient(
-                                        if (currentPlan == "Pro") listOf(AmberPro, Color(0xFFFDE047))
-                                        else listOf(EmeraldPrimary, EmeraldAccent)
-                                    )
-                                )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Daily Uploads",
-                            fontSize = 11.sp,
-                            color = TextSecondary
-                        )
-                        Text(
-                            text = "$dailyUploadUsage / $dailyUploadLimit",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (dailyUploadUsage >= dailyUploadLimit) Color(0xFFEF4444) else TextSecondary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    val uploadProgress = if (dailyUploadLimit <= 0) 0f
-                    else (dailyUploadUsage.toFloat() / dailyUploadLimit.toFloat()).coerceIn(0f, 1f)
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(DarkSurfaceVariant)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(uploadProgress)
-                                .fillMaxHeight()
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(
-                                    Brush.horizontalGradient(
-                                        if (currentPlan == "Pro") listOf(AmberPro, Color(0xFFFDE047))
-                                        else listOf(Color(0xFF38BDF8), EmeraldAccent)
+                                        if (currentPlan == "Pro") listOf(AmberPro, Color(0xFFFBBF24))
+                                        else listOf(ForestGreenPrimary, SageGreen)
                                     )
                                 )
                         )
                     }
 
                     if (currentPlan != "Pro") {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable(onClick = onOpenUpgrade),
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(PaleSage)
+                                .clickable(onClick = onOpenUpgrade)
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Bolt,
                                 contentDescription = null,
-                                tint = AmberPro,
+                                tint = ForestGreenPrimary,
                                 modifier = Modifier.size(13.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Upgrade to Pro for Deep Reasoning",
+                                text = "Upgrade Plan • Unlock Pro",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = AmberPro
+                                color = ForestGreenPrimary
                             )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Prominent User Account Card in Slider Bar
+            // User Profile Row
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(DarkElevated)
-                    .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 10.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(PureWhite)
+                    .border(1.dp, WarmBorder, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
                 if (isLoggedIn) {
                     Row(
@@ -503,33 +458,34 @@ fun DrawerContent(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
+                                    .size(34.dp)
                                     .clip(CircleShape)
-                                    .background(DarkSurfaceElevated),
+                                    .background(PaleSage)
+                                    .border(1.dp, SageGreen, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = (userName.takeIf { it.isNotBlank() } ?: userEmail)
                                         .take(1).uppercase(),
                                     fontWeight = FontWeight.Bold,
-                                    color = TextPrimary,
-                                    fontSize = 13.sp
+                                    color = ForestGreenPrimary,
+                                    fontSize = 14.sp
                                 )
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = userName.ifBlank { "User" },
-                                    fontSize = 12.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = TextPrimary,
+                                    color = CharcoalTextPrimary,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = userEmail,
-                                    fontSize = 10.sp,
-                                    color = TextMuted,
+                                    fontSize = 11.sp,
+                                    color = SlateTextSecondary,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -543,100 +499,77 @@ fun DrawerContent(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Logout,
                                 contentDescription = "Sign Out",
-                                tint = Color(0xFFF87171),
+                                tint = Color(0xFFDC2626),
                                 modifier = Modifier.size(16.dp)
                             )
                         }
                     }
                 } else {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onOpenLogin),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
+                                    .size(34.dp)
                                     .clip(CircleShape)
-                                    .background(DarkSurfaceVariant),
+                                    .background(PaleSage)
+                                    .border(1.dp, SageGreen, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Person,
                                     contentDescription = null,
-                                    tint = TextMuted,
-                                    modifier = Modifier.size(16.dp)
+                                    tint = ForestGreenPrimary,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    text = "Guest User",
-                                    fontSize = 12.sp,
+                                    text = "Sign In / Register",
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = TextPrimary
+                                    color = CharcoalTextPrimary
                                 )
                                 Text(
-                                    text = "Not signed in",
-                                    fontSize = 10.sp,
-                                    color = TextMuted
+                                    text = "Sync chats & unlock uploads",
+                                    fontSize = 11.sp,
+                                    color = SlateTextSecondary
                                 )
                             }
-                        }
-
-                        Button(
-                            onClick = onOpenLogin,
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
-                            modifier = Modifier.height(28.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 0.dp)
-                        ) {
-                            Text(
-                                text = "Log In",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Black
-                            )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider(color = DarkSurfaceBorder)
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Settings Row
+            // Settings Navigation Button
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .bounceClick(scaleDown = 0.98f, onClick = onOpenSettings)
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(PureWhite)
+                    .border(1.dp, WarmBorder, RoundedCornerShape(12.dp))
+                    .clickable(onClick = onOpenSettings)
+                    .padding(horizontal = 14.dp, vertical = 11.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Settings",
-                        color = TextPrimary,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    tint = SlateTextSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "v3.0",
-                    fontSize = 11.sp,
-                    color = TextMuted
+                    text = "Settings",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = CharcoalTextPrimary
                 )
             }
         }

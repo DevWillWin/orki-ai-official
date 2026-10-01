@@ -94,8 +94,8 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
 
     val audioManager = AudioManager(application, viewModelScope)
     val billingManager = PlayBillingManager(application, viewModelScope)
-    val imageService = ImageGenerationService(application)
-    val videoService = VideoGenerationService(application)
+    val imageService by lazy { ImageGenerationService(application) }
+    val videoService by lazy { VideoGenerationService(application) }
 
     private val activeUserEmailFlow = MutableStateFlow(if (prefs.isLoggedIn) prefs.userEmail.ifBlank { "" } else "")
 
@@ -142,11 +142,15 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
     private val incognitoMessages = mutableListOf<ChatMessageEntity>()
 
     init {
-        viewModelScope.launch {
+        // Asynchronously initialize nonessential services off the critical UI startup path
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            delay(3000)
             apiService.warmUpEdgeFunctions()
-            imageService.warmUp()
         }
-        billingManager.startConnection()
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            delay(1500)
+            billingManager.startConnection()
+        }
         viewModelScope.launch {
             billingManager.purchasedPlan.collect { plan ->
                 if (plan != null) {
@@ -228,12 +232,22 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(selectedModel = model)
     }
 
-    fun updateSettings(script: String, uiLang: String, name: String, persona: String, voice: String) {
+    fun updateSettings(
+        script: String,
+        uiLang: String,
+        name: String,
+        persona: String,
+        voice: String,
+        ttsSpeed: Float = prefs.ttsSpeed,
+        ttsPitch: Float = prefs.ttsPitch
+    ) {
         prefs.script = script
         prefs.uiLanguage = uiLang
         prefs.userName = name
         prefs.userPersona = persona
         prefs.selectedVoice = voice
+        prefs.ttsSpeed = ttsSpeed
+        prefs.ttsPitch = ttsPitch
         _uiState.value = _uiState.value.copy(
             script = script,
             uiLanguage = uiLang,
@@ -243,13 +257,17 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    fun clearTtsCache() {
+        audioManager.clearTtsCache()
+    }
+
     fun previewVoice(voiceId: String) {
         val profile = VoiceOptions.get(voiceId)
         audioManager.playRawResource(
             resId = profile.rawResId,
             ttsText = profile.samplePhrase,
-            pitch = profile.pitch,
-            speed = profile.speed
+            pitch = prefs.ttsPitch,
+            speed = prefs.ttsSpeed
         )
     }
 
@@ -865,9 +883,27 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
         activeStreamJob = viewModelScope.launch {
             val script = _uiState.value.script
             val scriptConstraint = if (script == "roman") {
-                "\n[Constraint:1. Provide the reply in natural, colloquial Roman Bodo (using 'w', 'dong', and keeping English words like 'Spanish', 'phone' as-is).2. Follow immediately with '---TTS---' on a new line, then the EXACT same sentence in Bodo Devanagari script (बर' हांखो) for speech synthesis.Example format:Oi jwmwi! Spanish raylainw nagirdwng nama? ma khobor nwngna?---TTS---ओइ जोमै! स्पेनिस रायलायनो नागिरदों नामा? मा खबर नोंना?]"
+                "\n[Constraint for Orki Response:\n" +
+                "1. DISPLAY PART: Provide conversational reply in natural colloquial Roman Bodo (using 'w', 'dong', 'mwjang', etc.).\n" +
+                "2. TTS SYNTHESIS PART: You MUST follow immediately on a brand new line with exactly '---TTS---'.\n" +
+                "3. After '---TTS---', output the EXACT same reply converted into pure, phonetically accurate Bodo Devanagari script (बर' हांखो) specifically optimized for the speech synthesizer:\n" +
+                "   - NO markdown formatting (no bold **, no headers #, no bullet points -).\n" +
+                "   - NO emojis in the TTS section (emojis break pronunciation).\n" +
+                "   - English & loan words MUST be transliterated phonetically into Devanagari so the Bodo voice model can pronounce them (e.g. 'Spanish' -> 'स्पेनिस', 'phone' -> 'फोन', 'AI' -> 'एआइ', 'YouTube' -> 'इउथुब', 'computer' -> 'कम्प्युटर', 'app' -> 'एप'). Never leave English letters in the TTS line!\n" +
+                "   - Numbers MUST be spelled out in Bodo words (e.g. 1 -> से, 2 -> नै, 3 -> थाम, etc.).\n" +
+                "   - Use commas (,) and danda (।) or periods (.) for natural breathing pauses.\n" +
+                "Example format:\n" +
+                "Oi jwmwi! Spanish raylainw nagirdwng nama? ma khobor nwngna?\n" +
+                "---TTS---\n" +
+                "ओइ जोमै! स्पेनिस रायलायनो नागिरदों नामा? मा खबर नोंना?]"
             } else {
-                "\n[Constraint: Reply strictly in Bodo Devanagari script (बर' हांखो). Never output Roman script.]"
+                "\n[Constraint for Orki Response:\n" +
+                "1. DISPLAY PART: Reply strictly in Bodo Devanagari script (बर' हांखो).\n" +
+                "2. TTS SYNTHESIS PART: Always append '---TTS---' followed by a clean, pure speech-ready version:\n" +
+                "   - Strip all markdown symbols (**, ##, bullets, lists).\n" +
+                "   - Strip all emojis.\n" +
+                "   - Spell out numbers in Bodo words (से, नै, थाम).\n" +
+                "   - Phonetically write any English or loan terms in Devanagari (e.g. फोन, स्पेनिस).]"
             }
             val livePromptConstraint = if (liveMode) {
                 "\n[LIVE VOICE MODE: You are conversing in a live audio call. Keep your answer strictly to 1 or 2 ultra-concise, natural spoken sentences in Bodo. No lists, no bullets, no markdown.]"
@@ -1069,7 +1105,9 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
 
         val voice = _uiState.value.selectedVoice
         val profile = VoiceOptions.get(voice)
-        val cacheKey = "$voice:$clean"
+        val speed = prefs.ttsSpeed
+        val pitch = prefs.ttsPitch
+        val cacheKey = "$voice:$speed:$clean"
 
         // 1. Check in-memory URL cache
         val cachedUrl = audioManager.ttsUrlCache[cacheKey]
@@ -1077,8 +1115,8 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             audioManager.playAudioUrl(
                 url = cachedUrl,
                 ttsText = text,
-                pitch = profile.pitch,
-                speed = profile.speed
+                pitch = pitch,
+                speed = speed
             )
             return
         }
@@ -1090,8 +1128,8 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             audioManager.playAudioUrl(
                 url = diskPath,
                 ttsText = text,
-                pitch = profile.pitch,
-                speed = profile.speed
+                pitch = pitch,
+                speed = speed
             )
             return
         }
@@ -1108,8 +1146,8 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
                 audioManager.playAudioUrl(
                     url = finalPath,
                     ttsText = text,
-                    pitch = profile.pitch,
-                    speed = profile.speed
+                    pitch = pitch,
+                    speed = speed
                 )
             }.onFailure { err ->
                 audioManager.stopPlayback()
@@ -1166,7 +1204,9 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
 
         val voice = _uiState.value.selectedVoice
         val profile = VoiceOptions.get(voice)
-        val cacheKey = "$voice:$clean"
+        val speed = prefs.ttsSpeed
+        val pitch = prefs.ttsPitch
+        val cacheKey = "$voice:$speed:$clean"
 
         _uiState.value = _uiState.value.copy(liveTalkStatus = LiveTalkStatus.SPEAKING)
 
@@ -1175,8 +1215,8 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             audioManager.playAudioUrl(
                 url = cachedUrl,
                 ttsText = ttsText,
-                pitch = profile.pitch,
-                speed = profile.speed
+                pitch = pitch,
+                speed = speed
             ) {
                 if (_uiState.value.liveTalkStatus != LiveTalkStatus.IDLE) {
                     startVoiceRecording(liveMode = true)
@@ -1193,8 +1233,8 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
                     audioManager.playAudioUrl(
                         url = url,
                         ttsText = ttsText,
-                        pitch = profile.pitch,
-                        speed = profile.speed
+                        pitch = pitch,
+                        speed = speed
                     ) {
                         if (_uiState.value.liveTalkStatus != LiveTalkStatus.IDLE) {
                             startVoiceRecording(liveMode = true)

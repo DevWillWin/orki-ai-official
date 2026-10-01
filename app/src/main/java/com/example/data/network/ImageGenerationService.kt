@@ -29,7 +29,7 @@ data class GeneratedImageFile(
 
 class ImageGenerationService(private val context: Context) {
 
-    val perchanceEngine = PerchanceImageEngine(context)
+    val perchanceEngine by lazy { PerchanceImageEngine(context) }
 
     private val httpClient: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)

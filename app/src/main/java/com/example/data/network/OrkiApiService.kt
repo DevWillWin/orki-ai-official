@@ -1,5 +1,6 @@
 package com.example.data.network
 
+import com.example.data.audio.BodoTtsNormalizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -50,54 +51,11 @@ class OrkiApiService {
         }
 
         fun ensureDevanagariForTTS(text: String): String {
-            val devanagariRegex = Regex("[\\u0900-\\u097F]")
-            if (devanagariRegex.containsMatchIn(text)) return text
-
-            var res = text.lowercase()
-                .replace(Regex("\\bkhulumbai\\b"), "खुलुमबाय")
-                .replace(Regex("\\bmabwi\\b"), "माबोरै")
-                .replace(Regex("\\bmabrwi\\b"), "माबोरै")
-                .replace(Regex("\\bmabwrwi\\b"), "माबोरै")
-                .replace(Regex("\\bmwjang\\b"), "मोजां")
-                .replace(Regex("\\bmwzang\\b"), "मोजां")
-                .replace(Regex("\\bjwmwi\\b"), "जोम्वै")
-                .replace(Regex("\\bdong\\b"), "दं")
-                .replace(Regex("\\bdonga\\b"), "दङ")
-                .replace(Regex("\\bnwng\\b"), "नों")
-                .replace(Regex("\\bnwngha\\b"), "नोंहा")
-                .replace(Regex("\\bang\\b"), "आं")
-                .replace(Regex("\\bangha\\b"), "आंहा")
-                .replace(Regex("\\bma\\b"), "मा")
-                .replace(Regex("\\bkhobor\\b"), "खबर")
-                .replace(Regex("\\bthang\\b"), "थां")
-                .replace(Regex("\\bthangnw\\b"), "थांनो")
-                .replace(Regex("\\bkhalam\\b"), "खालाम")
-                .replace(Regex("\\bkhalamnw\\b"), "खालामनो")
-                .replace(Regex("\\bswr\\b"), "सोर")
-                .replace(Regex("\\bboha\\b"), "बहा")
-                .replace(Regex("\\bfai\\b"), "फै")
-                .replace(Regex("\\bphai\\b"), "फै")
-                .replace(Regex("\\bonkham\\b"), "ओंखाम")
-                .replace(Regex("\\bwngkham\\b"), "ओंखाम")
-                .replace("kh", "ख").replace("ph", "फ").replace("th", "थ")
-                .replace("ng", "ं")
-                .replace("wi", "ुइ").replace("ai", "ै").replace("ao", "ौ")
-                .replace("jw", "जो").replace("nw", "नो").replace("bw", "बो").replace("w", "ु")
-                .replace("b", "ब").replace("d", "द").replace("g", "ग").replace("h", "ह")
-                .replace("j", "ज").replace("k", "क").replace("l", "ल").replace("m", "म")
-                .replace("n", "न").replace("p", "प").replace("r", "र").replace("s", "स")
-                .replace("t", "त").replace("y", "य").replace("z", "ज")
-                .replace("a", "ा").replace("i", "ि").replace("u", "ु").replace("e", "े").replace("o", "ो")
-
-            return res
+            return BodoTtsNormalizer.normalizeForTts(text)
         }
 
         fun cleanTextForTTS(rawText: String): String {
-            val stripped = rawText
-                .replace(Regex("[#*_`~>\\[\\]()]"), "")
-                .replace(Regex("[\\p{So}\\p{Cn}]"), "")
-                .trim()
-            return ensureDevanagariForTTS(stripped)
+            return BodoTtsNormalizer.normalizeForTts(rawText)
         }
     }
 

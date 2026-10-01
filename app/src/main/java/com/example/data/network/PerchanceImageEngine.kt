@@ -203,11 +203,8 @@ class PerchanceImageEngine(private val context: Context) {
         </html>
     """.trimIndent()
 
-    init {
-        mainHandler.post {
-            ensureWebViewInitialized()
-        }
-    }
+    // Lazily initialized on-demand when generateImage() is actually invoked,
+    // never on application startup, to prevent blocking the UI thread with Chromium initialization.
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun ensureWebViewInitialized() {

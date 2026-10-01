@@ -131,6 +131,14 @@ class UserPreferences(context: Context) {
         get() = prefs.getString("arki_voice", "female_mainao") ?: "female_mainao"
         set(value) = prefs.edit().putString("arki_voice", value).apply()
 
+    var ttsSpeed: Float
+        get() = prefs.getFloat("arki_tts_speed", 0.95f)
+        set(value) = prefs.edit().putFloat("arki_tts_speed", value).apply()
+
+    var ttsPitch: Float
+        get() = prefs.getFloat("arki_tts_pitch", 1.0f)
+        set(value) = prefs.edit().putFloat("arki_tts_pitch", value).apply()
+
     var hasExplicitlyLoggedIn: Boolean
         get() = prefs.getBoolean("has_explicitly_logged_in", false)
         set(value) = prefs.edit().putBoolean("has_explicitly_logged_in", value).apply()

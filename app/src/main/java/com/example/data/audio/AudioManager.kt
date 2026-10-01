@@ -72,6 +72,19 @@ class AudioManager(
         }
     }
 
+    fun clearTtsCache() {
+        try {
+            ttsUrlCache.clear()
+            ttsDiskCacheDir.listFiles()?.forEach { file ->
+                if (file.isFile && file.name.startsWith("tts_")) {
+                    file.delete()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     fun startRecording(
         autoSilenceDetection: Boolean = false,
         onSilenceDetected: (() -> Unit)? = null

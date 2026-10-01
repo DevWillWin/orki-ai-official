@@ -28,8 +28,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
@@ -39,10 +42,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -82,6 +88,7 @@ fun SettingsDialog(
     currentPlan: String = "Free",
     activePlayingText: String? = null,
     onPreviewVoice: (String) -> Unit,
+    onClearCache: (() -> Unit)? = null,
     onDismiss: () -> Unit,
     onUpgradeClick: (() -> Unit)? = null,
     onSave: (script: String, uiLang: String, name: String, persona: String, voice: String) -> Unit
@@ -97,6 +104,8 @@ fun SettingsDialog(
     val prefs = remember { UserPreferences(context) }
     var imageEngine by remember { mutableStateOf(prefs.imageEnginePreference) }
     var dalleDeployment by remember { mutableStateOf(prefs.azureDalleDeployment) }
+    var ttsSpeed by remember { mutableFloatStateOf(prefs.ttsSpeed) }
+    var cacheResetMessage by remember { mutableStateOf<String?>(null) }
 
     val scrollState = rememberScrollState()
 
@@ -308,6 +317,164 @@ fun SettingsDialog(
                                         lastPreviewedVoiceId = profile.id
                                         onPreviewVoice(profile.id)
                                     }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Speech Speed / Rate Slider
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(PureWhite, RoundedCornerShape(12.dp))
+                                .border(1.dp, WarmBorder, RoundedCornerShape(12.dp))
+                                .padding(14.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Speed,
+                                        contentDescription = null,
+                                        tint = ForestGreenPrimary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Speech Speed & Pacing",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = CharcoalTextPrimary
+                                    )
+                                }
+                                val formattedSpeed = String.format(java.util.Locale.US, "%.2fx", ttsSpeed)
+                                Text(
+                                    text = formattedSpeed,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = ForestGreenPrimary
+                                )
+                            }
+
+                            Text(
+                                text = "Slightly slower speech (0.90x–0.95x) delivers clearer enunciation for Bodo tones.",
+                                fontSize = 11.sp,
+                                color = SlateTextSecondary,
+                                modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
+                            )
+
+                            Slider(
+                                value = ttsSpeed,
+                                onValueChange = { ttsSpeed = it },
+                                valueRange = 0.75f..1.25f,
+                                steps = 9,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = ForestGreenPrimary,
+                                    activeTrackColor = ForestGreenPrimary,
+                                    inactiveTrackColor = WarmBorder
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            // Speed preset quick chips
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(0.85f to "0.85x", 0.95f to "0.95x ⭐", 1.0f to "1.0x", 1.15f to "1.15x").forEach { (speedVal, label) ->
+                                    val isCurrent = kotlin.math.abs(ttsSpeed - speedVal) < 0.04f
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (isCurrent) ForestGreenPrimary else PaleSage)
+                                            .border(1.dp, if (isCurrent) ForestGreenPrimary else WarmBorder, RoundedCornerShape(8.dp))
+                                            .clickable { ttsSpeed = speedVal }
+                                            .padding(vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isCurrent) Color.White else CharcoalTextPrimary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Pronunciation & Normalizer Info Card
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(PaleSage.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                                .border(1.dp, SageGreen.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                                .padding(12.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.Top) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = ForestGreenDeep,
+                                    modifier = Modifier.size(16.dp).padding(top = 1.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = "Bodo Phonetic Pre-Processor Active",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = ForestGreenDeep
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "• English loanwords (e.g. Spanish, phone, AI) are phonetically mapped to Devanagari (स्पेनिस, फोन, एआइ).\n• Emojis and markdown formatting are stripped before speech synthesis.\n• Numbers (0–9) are spoken naturally in Bodo (से, नै, थाम).",
+                                        fontSize = 11.sp,
+                                        color = CharcoalTextPrimary.copy(alpha = 0.85f),
+                                        lineHeight = 15.sp
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Cache reset button
+                            OutlinedButton(
+                                onClick = {
+                                    onClearCache?.invoke()
+                                    cacheResetMessage = "Voice cache cleared! Next replay will synthesize fresh audio."
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, ForestGreenPrimary.copy(alpha = 0.6f)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = ForestGreenPrimary),
+                                modifier = Modifier.fillMaxWidth().height(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Reset Speech Audio Cache",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+
+                            if (cacheResetMessage != null) {
+                                Text(
+                                    text = cacheResetMessage!!,
+                                    fontSize = 10.sp,
+                                    color = ForestGreenDeep,
+                                    modifier = Modifier.padding(top = 6.dp)
                                 )
                             }
                         }
@@ -626,6 +793,7 @@ fun SettingsDialog(
                             onClick = {
                                 prefs.imageEnginePreference = imageEngine
                                 prefs.azureDalleDeployment = dalleDeployment.trim().ifEmpty { "dall-e-3" }
+                                prefs.ttsSpeed = ttsSpeed
                                 onSave(script, uiLang, name.trim(), persona.trim(), voice)
                                 onDismiss()
                             },

@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -49,6 +48,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.example.R
 import com.example.data.audio.AudioPlayerState
 import com.example.ui.theme.DarkCanvas
 import com.example.ui.theme.DarkSurface
@@ -140,18 +141,23 @@ fun AudioPlayerPill(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = TextSecondary,
-                                modifier = Modifier.size(11.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .clip(CircleShape)
+                            ) {
+                                AsyncImage(
+                                    model = R.drawable.ic_orki_inapp_logo_circle,
+                                    contentDescription = "Orki",
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "Orki Voice",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = TextSecondary
+                                color = Color(0xFFE2E8F0)
                             )
                         }
 

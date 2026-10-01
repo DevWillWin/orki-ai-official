@@ -1046,6 +1046,9 @@ fun MainChatScreen(
             onPreviewVoice = { voiceId ->
                 viewModel.previewVoice(voiceId)
             },
+            onClearCache = {
+                viewModel.clearTtsCache()
+            },
             onDismiss = { showSettingsDialog = false },
             onUpgradeClick = { showUpgradeDialog = true },
             onSave = { script, uiLang, name, persona, voice ->

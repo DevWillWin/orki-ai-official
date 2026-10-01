@@ -35,6 +35,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import coil.compose.AsyncImage
+import com.example.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -110,11 +112,12 @@ fun DrawerContent(
                             .border(1.dp, SageGreen, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
+                        AsyncImage(
+                            model = R.drawable.ic_orki_inapp_logo_circle,
                             contentDescription = "Orki AI",
-                            tint = ForestGreenPrimary,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
                         )
                     }
                     Spacer(modifier = Modifier.width(10.dp))

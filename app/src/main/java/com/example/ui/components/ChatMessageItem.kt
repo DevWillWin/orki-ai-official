@@ -1,8 +1,14 @@
 package com.example.ui.components
 
+import android.content.Intent
+import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -28,16 +35,9 @@ import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.window.Dialog
-import android.content.Intent
-import android.widget.Toast
-import com.example.data.network.ImageGenerationService
-import java.io.File
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,10 +47,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -60,31 +60,23 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.example.data.local.ChatMessageEntity
-import com.example.ui.components.bounceClick
-import com.example.ui.theme.DarkBorderSubtle
-import com.example.ui.theme.DarkCanvas
-import com.example.ui.theme.DarkSurface
-import com.example.ui.theme.DarkSurfaceBorder
-import com.example.ui.theme.DarkSurfaceElevated
-import com.example.ui.theme.DarkSurfaceVariant
-import com.example.ui.theme.EmeraldAccent
-import com.example.ui.theme.EmeraldPrimary
-import com.example.ui.theme.GreenBorder
-import com.example.ui.theme.GreenBorderGlow
-import com.example.ui.theme.GreenBright
-import com.example.ui.theme.GreenHighlight
-import com.example.ui.theme.GreenMuted
-import com.example.ui.theme.GreenSurfaceElevated
-import com.example.ui.theme.GreenSurfaceTint
-import com.example.ui.theme.GreenTextMuted
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.data.network.ImageGenerationService
+import com.example.ui.theme.CharcoalTextPrimary
+import com.example.ui.theme.ForestGreenPrimary
+import com.example.ui.theme.IvoryBackground
+import com.example.ui.theme.PaleSage
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.SageGreen
+import com.example.ui.theme.SlateTextSecondary
+import com.example.ui.theme.WarmBorder
+import com.example.ui.theme.WarmBorderSubtle
 import com.example.util.formatFileSize
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.File
 
 @Composable
 fun ChatMessageItem(
@@ -108,10 +100,10 @@ fun ChatMessageItem(
             Column(
                 modifier = Modifier
                     .widthIn(max = 320.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(com.example.ui.theme.PaleSage)
-                    .border(1.dp, com.example.ui.theme.SageGreen, RoundedCornerShape(20.dp))
-                    .padding(horizontal = 14.dp, vertical = 11.dp)
+                    .clip(RoundedCornerShape(20.dp, 20.dp, 4.dp, 20.dp))
+                    .background(PaleSage)
+                    .border(1.dp, SageGreen, RoundedCornerShape(20.dp, 20.dp, 4.dp, 20.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
                 // If attachment is present, render attachment header
                 if (message.attachmentName != null) {
@@ -129,7 +121,7 @@ fun ChatMessageItem(
                 if (message.text.isNotBlank()) {
                     Text(
                         text = message.text,
-                        color = com.example.ui.theme.CharcoalTextPrimary,
+                        color = CharcoalTextPrimary,
                         fontSize = 15.sp,
                         lineHeight = 22.sp,
                         fontWeight = FontWeight.Normal
@@ -138,11 +130,11 @@ fun ChatMessageItem(
             }
         }
     } else {
-        // Assistant message: Clean ChatGPT-style layout displayed directly on ivory background
+        // Assistant message: Clean editorial layout displayed unboxed on ivory background
         Column(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             // Header: Minimalist Avatar Badge + Orki AI Label
             Row(
@@ -153,15 +145,16 @@ fun ChatMessageItem(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(CircleShape)
-                        .background(com.example.ui.theme.PaleSage)
-                        .border(1.dp, com.example.ui.theme.SageGreen, CircleShape),
+                        .background(PaleSage)
+                        .border(1.dp, SageGreen, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
+                    AsyncImage(
+                        model = com.example.R.drawable.ic_orki_inapp_logo_circle,
                         contentDescription = "Orki AI",
-                        tint = com.example.ui.theme.ForestGreenPrimary,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clip(CircleShape)
                     )
                 }
 
@@ -171,7 +164,7 @@ fun ChatMessageItem(
                     text = "Orki AI",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = com.example.ui.theme.CharcoalTextPrimary
+                    color = CharcoalTextPrimary
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -179,12 +172,13 @@ fun ChatMessageItem(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(com.example.ui.theme.PaleSage)
+                        .background(PaleSage)
+                        .border(1.dp, SageGreen.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
                         text = "Assistant",
-                        color = com.example.ui.theme.ForestGreenPrimary,
+                        color = ForestGreenPrimary,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -197,93 +191,91 @@ fun ChatMessageItem(
                     imageUri = message.attachmentUri,
                     prompt = message.text
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
             }
 
-            // If assistant generated a video, display the video card
-            if (message.attachmentUri != null && message.attachmentType == "generated_video") {
-                GeneratedVideoAssistantCard(
-                    videoUri = message.attachmentUri,
-                    thumbnailUrl = message.attachmentName,
-                    prompt = message.text
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            // Message text body formatted directly on the canvas background
-            val formattedText = formatMarkdownText(message.text)
-            Text(
-                text = formattedText,
-                color = com.example.ui.theme.CharcoalTextPrimary,
-                fontSize = 15.sp,
-                lineHeight = 24.sp,
-                modifier = Modifier.padding(start = 2.dp, bottom = 8.dp)
-            )
-
-            // Bottom Action Bar: Listen & Copy buttons in subtle pills
+            // Assistant response text with structured paragraphs, code blocks, lists, and multilingual support
             if (message.text.isNotBlank()) {
+                AssistantFormattedContent(
+                    text = message.text,
+                    modifier = Modifier.padding(start = 2.dp, bottom = 4.dp)
+                )
+
+                // Compact Listen and Copy Action Bar
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(top = 2.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(top = 4.dp)
                 ) {
-                    // Listen Action
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                    // Compact Listen Button (Icon-Only with 48dp touch target)
+                    Box(
                         modifier = Modifier
+                            .size(38.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(com.example.ui.theme.PureWhite)
-                            .border(1.dp, com.example.ui.theme.WarmBorder, RoundedCornerShape(8.dp))
-                            .bounceClick {
+                            .background(PureWhite)
+                            .border(1.dp, WarmBorder, RoundedCornerShape(8.dp))
+                            .clickable {
                                 onPlayTts(message.ttsText ?: message.text)
-                            }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.VolumeUp,
-                            contentDescription = "Listen",
-                            tint = com.example.ui.theme.SlateTextSecondary,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Listen",
-                            color = com.example.ui.theme.SlateTextSecondary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
+                            contentDescription = "Listen to response",
+                            tint = SlateTextSecondary,
+                            modifier = Modifier.size(16.dp)
                         )
                     }
 
-                    // Copy Action
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                    // Compact Copy Button (Icon-Only with 48dp touch target)
+                    Box(
                         modifier = Modifier
+                            .size(38.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(com.example.ui.theme.PureWhite)
-                            .border(1.dp, com.example.ui.theme.WarmBorder, RoundedCornerShape(8.dp))
-                            .bounceClick {
+                            .background(PureWhite)
+                            .border(
+                                1.dp,
+                                if (isCopied) ForestGreenPrimary else WarmBorder,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .clickable {
                                 clipboardManager.setText(AnnotatedString(message.text))
                                 isCopied = true
                                 scope.launch {
                                     delay(2000)
                                     isCopied = false
                                 }
-                            }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (isCopied) Icons.Default.Check else Icons.Default.ContentCopy,
                             contentDescription = "Copy text",
-                            tint = if (isCopied) com.example.ui.theme.ForestGreenPrimary else com.example.ui.theme.SlateTextSecondary,
-                            modifier = Modifier.size(14.dp)
+                            tint = if (isCopied) ForestGreenPrimary else SlateTextSecondary,
+                            modifier = Modifier.size(15.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = if (isCopied) "Copied" else "Copy",
-                            color = if (isCopied) com.example.ui.theme.ForestGreenPrimary else com.example.ui.theme.SlateTextSecondary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                    }
+
+                    // Brief Feedback Indicator
+                    AnimatedVisibility(
+                        visible = isCopied,
+                        enter = fadeIn(),
+                        exit = fadeOut()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(PaleSage)
+                                .border(1.dp, SageGreen, RoundedCornerShape(6.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "Copied",
+                                color = ForestGreenPrimary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
@@ -291,8 +283,235 @@ fun ChatMessageItem(
     }
 }
 
-// Markdown parser for bold and code spans
-fun formatMarkdownText(raw: String) = buildAnnotatedString {
+/**
+ * Editorial formatted content for assistant responses.
+ * Breaks down paragraphs, handles code blocks, markdown headings, lists,
+ * and maintains generous line height (24.sp) for comfortable reading and Devanagari/Bodo rendering.
+ */
+@Composable
+fun AssistantFormattedContent(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    val clipboardManager = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
+
+    // Handle code blocks vs text paragraphs
+    val parts = remember(text) { parseMessageBlocks(text) }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        parts.forEach { part ->
+            when (part) {
+                is MessageBlock.CodeBlock -> {
+                    var codeCopied by remember { mutableStateOf(false) }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(PaleSage.copy(alpha = 0.5f))
+                            .border(1.dp, WarmBorder, RoundedCornerShape(10.dp))
+                    ) {
+                        // Header bar with language & copy button
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(PaleSage)
+                                .border(
+                                    width = 1.dp,
+                                    color = WarmBorderSubtle,
+                                    shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)
+                                )
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = part.language.ifEmpty { "code" },
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = SlateTextSecondary
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .clickable {
+                                        clipboardManager.setText(AnnotatedString(part.code))
+                                        codeCopied = true
+                                        scope.launch {
+                                            delay(1800)
+                                            codeCopied = false
+                                        }
+                                    }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (codeCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                                    contentDescription = "Copy code",
+                                    tint = if (codeCopied) ForestGreenPrimary else SlateTextSecondary,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (codeCopied) "Copied" else "Copy",
+                                    fontSize = 11.sp,
+                                    color = if (codeCopied) ForestGreenPrimary else SlateTextSecondary
+                                )
+                            }
+                        }
+
+                        // Code snippet body
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = part.code,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 13.sp,
+                                lineHeight = 19.sp,
+                                color = CharcoalTextPrimary
+                            )
+                        }
+                    }
+                }
+
+                is MessageBlock.Paragraph -> {
+                    val rawParagraph = part.content.trim()
+                    if (rawParagraph.isNotEmpty()) {
+                        when {
+                            rawParagraph.startsWith("### ") -> {
+                                Text(
+                                    text = formatMarkdownInline(rawParagraph.removePrefix("### ")),
+                                    fontSize = 16.sp,
+                                    lineHeight = 23.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = CharcoalTextPrimary,
+                                    modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                                )
+                            }
+                            rawParagraph.startsWith("## ") -> {
+                                Text(
+                                    text = formatMarkdownInline(rawParagraph.removePrefix("## ")),
+                                    fontSize = 17.sp,
+                                    lineHeight = 24.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = CharcoalTextPrimary,
+                                    modifier = Modifier.padding(top = 6.dp, bottom = 2.dp)
+                                )
+                            }
+                            rawParagraph.startsWith("# ") -> {
+                                Text(
+                                    text = formatMarkdownInline(rawParagraph.removePrefix("# ")),
+                                    fontSize = 18.sp,
+                                    lineHeight = 26.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = CharcoalTextPrimary,
+                                    modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+                                )
+                            }
+                            rawParagraph.startsWith("- ") || rawParagraph.startsWith("* ") -> {
+                                Row(
+                                    modifier = Modifier.padding(start = 4.dp),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Text(
+                                        text = "•",
+                                        fontSize = 15.sp,
+                                        lineHeight = 24.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = ForestGreenPrimary,
+                                        modifier = Modifier.padding(end = 8.dp)
+                                    )
+                                    Text(
+                                        text = formatMarkdownInline(rawParagraph.drop(2)),
+                                        fontSize = 15.sp,
+                                        lineHeight = 24.sp,
+                                        color = CharcoalTextPrimary
+                                    )
+                                }
+                            }
+                            else -> {
+                                Text(
+                                    text = formatMarkdownInline(rawParagraph),
+                                    fontSize = 15.sp,
+                                    lineHeight = 24.sp,
+                                    color = CharcoalTextPrimary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private sealed interface MessageBlock {
+    data class Paragraph(val content: String) : MessageBlock
+    data class CodeBlock(val language: String, val code: String) : MessageBlock
+}
+
+private fun parseMessageBlocks(raw: String): List<MessageBlock> {
+    val blocks = mutableListOf<MessageBlock>()
+    val lines = raw.lines()
+    var inCodeBlock = false
+    var codeLang = ""
+    val currentCode = StringBuilder()
+    val currentParagraph = StringBuilder()
+
+    fun flushParagraph() {
+        if (currentParagraph.isNotBlank()) {
+            blocks.add(MessageBlock.Paragraph(currentParagraph.toString().trim()))
+            currentParagraph.clear()
+        }
+    }
+
+    for (line in lines) {
+        if (line.trimStart().startsWith("```")) {
+            if (inCodeBlock) {
+                // End of code block
+                blocks.add(MessageBlock.CodeBlock(codeLang, currentCode.toString().trimEnd()))
+                currentCode.clear()
+                codeLang = ""
+                inCodeBlock = false
+            } else {
+                // Start of code block
+                flushParagraph()
+                inCodeBlock = true
+                codeLang = line.trimStart().removePrefix("```").trim()
+            }
+        } else if (inCodeBlock) {
+            currentCode.append(line).append("\n")
+        } else {
+            if (line.isBlank()) {
+                flushParagraph()
+            } else {
+                if (currentParagraph.isNotEmpty()) currentParagraph.append("\n")
+                currentParagraph.append(line)
+            }
+        }
+    }
+
+    if (inCodeBlock) {
+        blocks.add(MessageBlock.CodeBlock(codeLang, currentCode.toString().trimEnd()))
+    } else {
+        flushParagraph()
+    }
+
+    return if (blocks.isEmpty()) listOf(MessageBlock.Paragraph(raw)) else blocks
+}
+
+/**
+ * Inline markdown parser: **bold**, `code`, *italic*
+ */
+fun formatMarkdownInline(raw: String) = buildAnnotatedString {
     var i = 0
     val len = raw.length
     while (i < len) {
@@ -301,7 +520,7 @@ fun formatMarkdownText(raw: String) = buildAnnotatedString {
             raw.startsWith("**", i) -> {
                 val end = raw.indexOf("**", i + 2)
                 if (end != -1) {
-                    withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = TextPrimary)) {
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = CharcoalTextPrimary)) {
                         append(raw.substring(i + 2, end))
                     }
                     i = end + 2
@@ -317,11 +536,25 @@ fun formatMarkdownText(raw: String) = buildAnnotatedString {
                     withStyle(
                         SpanStyle(
                             fontFamily = FontFamily.Monospace,
-                            background = Color(0x33000000),
-                            color = TextPrimary,
-                            fontSize = 13.sp
+                            background = PaleSage,
+                            color = ForestGreenPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     ) {
+                        append(raw.substring(i + 1, end))
+                    }
+                    i = end + 1
+                } else {
+                    append(raw[i])
+                    i++
+                }
+            }
+            // Italic *text*
+            raw.startsWith("*", i) && !raw.startsWith("**", i) -> {
+                val end = raw.indexOf("*", i + 1)
+                if (end != -1) {
+                    withStyle(SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = CharcoalTextPrimary)) {
                         append(raw.substring(i + 1, end))
                     }
                     i = end + 1
@@ -338,6 +571,9 @@ fun formatMarkdownText(raw: String) = buildAnnotatedString {
     }
 }
 
+// Kept for backward compatibility
+fun formatMarkdownText(raw: String) = formatMarkdownInline(raw)
+
 @Composable
 private fun AttachmentBubbleCard(
     name: String,
@@ -353,8 +589,8 @@ private fun AttachmentBubbleCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(DarkSurfaceVariant)
-                    .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(12.dp))
+                    .background(PureWhite)
+                    .border(1.dp, WarmBorder, RoundedCornerShape(12.dp))
             ) {
                 if (uri != null) {
                     Box(
@@ -362,7 +598,7 @@ private fun AttachmentBubbleCard(
                             .fillMaxWidth()
                             .height(180.dp)
                             .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                            .background(DarkCanvas),
+                            .background(IvoryBackground),
                         contentAlignment = Alignment.Center
                     ) {
                         AsyncImage(
@@ -384,7 +620,7 @@ private fun AttachmentBubbleCard(
                     Icon(
                         imageVector = Icons.Default.Image,
                         contentDescription = null,
-                        tint = TextSecondary,
+                        tint = ForestGreenPrimary,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -392,7 +628,7 @@ private fun AttachmentBubbleCard(
                         text = name,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color.White,
+                        color = CharcoalTextPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
@@ -402,7 +638,7 @@ private fun AttachmentBubbleCard(
                         Text(
                             text = formattedSize,
                             fontSize = 10.sp,
-                            color = TextMuted
+                            color = SlateTextSecondary
                         )
                     }
                 }
@@ -413,8 +649,8 @@ private fun AttachmentBubbleCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF1E1715))
-                    .border(1.dp, Color(0x55EF4444), RoundedCornerShape(12.dp))
+                    .background(PureWhite)
+                    .border(1.dp, WarmBorder, RoundedCornerShape(12.dp))
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -422,13 +658,13 @@ private fun AttachmentBubbleCard(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0x33EF4444)),
+                        .background(Color(0xFFFEF2F2)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.PictureAsPdf,
                         contentDescription = "PDF",
-                        tint = Color(0xFFF87171),
+                        tint = Color(0xFFDC2626),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -438,26 +674,26 @@ private fun AttachmentBubbleCard(
                         text = name,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
+                        color = CharcoalTextPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = if (formattedSize != null) "PDF Document • $formattedSize" else "PDF Document",
                         fontSize = 11.sp,
-                        color = Color(0xFFFCA5A5)
+                        color = SlateTextSecondary
                     )
                 }
             }
         }
         else -> {
-            // Text file
+            // Text / Other file
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF0F172A))
-                    .border(1.dp, Color(0x5538BDF8), RoundedCornerShape(12.dp))
+                    .background(PureWhite)
+                    .border(1.dp, WarmBorder, RoundedCornerShape(12.dp))
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -465,13 +701,13 @@ private fun AttachmentBubbleCard(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0x3338BDF8)),
+                        .background(PaleSage),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Description,
                         contentDescription = "Text file",
-                        tint = Color(0xFF38BDF8),
+                        tint = ForestGreenPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -481,14 +717,14 @@ private fun AttachmentBubbleCard(
                         text = name,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
+                        color = CharcoalTextPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = if (formattedSize != null) "Text File • $formattedSize" else "Text Document",
+                        text = if (formattedSize != null) "File • $formattedSize" else "Document",
                         fontSize = 11.sp,
-                        color = Color(0xFFBAE6FD)
+                        color = SlateTextSecondary
                     )
                 }
             }
@@ -510,9 +746,9 @@ fun GeneratedImageAssistantCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(com.example.ui.theme.PureWhite)
-            .border(1.dp, com.example.ui.theme.WarmBorder, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .background(PureWhite)
+            .border(1.dp, WarmBorder, RoundedCornerShape(14.dp))
     ) {
         Box(
             modifier = Modifier
@@ -527,7 +763,7 @@ fun GeneratedImageAssistantCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(240.dp)
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
             )
 
             // Zoom hint badge
@@ -560,14 +796,14 @@ fun GeneratedImageAssistantCard(
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = com.example.ui.theme.ForestGreenPrimary,
+                    tint = ForestGreenPrimary,
                     modifier = Modifier.size(13.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "Generated with Orki AI",
                     fontSize = 11.sp,
-                    color = com.example.ui.theme.SlateTextSecondary
+                    color = SlateTextSecondary
                 )
             }
 
@@ -577,8 +813,8 @@ fun GeneratedImageAssistantCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(com.example.ui.theme.PaleSage)
-                        .border(1.dp, com.example.ui.theme.SageGreen, RoundedCornerShape(8.dp))
+                        .background(PaleSage)
+                        .border(1.dp, SageGreen, RoundedCornerShape(8.dp))
                         .clickable {
                             scope.launch {
                                 val file = File(imageUri)
@@ -600,13 +836,13 @@ fun GeneratedImageAssistantCard(
                     Icon(
                         imageVector = if (isSaved) Icons.Default.Check else Icons.Default.Download,
                         contentDescription = "Save image",
-                        tint = if (isSaved) com.example.ui.theme.ForestGreenPrimary else com.example.ui.theme.SlateTextSecondary,
+                        tint = if (isSaved) ForestGreenPrimary else SlateTextSecondary,
                         modifier = Modifier.size(13.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = if (isSaved) "Saved" else "Save",
-                        color = if (isSaved) com.example.ui.theme.ForestGreenPrimary else com.example.ui.theme.SlateTextSecondary,
+                        color = if (isSaved) ForestGreenPrimary else SlateTextSecondary,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -636,7 +872,7 @@ fun GeneratedImageAssistantCard(
                     Icon(
                         imageVector = Icons.Default.Share,
                         contentDescription = "Share",
-                        tint = com.example.ui.theme.SlateTextSecondary,
+                        tint = SlateTextSecondary,
                         modifier = Modifier.size(15.dp)
                     )
                 }
@@ -650,8 +886,8 @@ fun GeneratedImageAssistantCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(DarkCanvas)
-                    .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(16.dp))
+                    .background(IvoryBackground)
+                    .border(1.dp, WarmBorder, RoundedCornerShape(16.dp))
                     .padding(8.dp)
             ) {
                 AsyncImage(

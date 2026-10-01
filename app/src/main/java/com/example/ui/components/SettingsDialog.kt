@@ -1,6 +1,5 @@
 package com.example.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -50,30 +49,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
+import com.example.R
 import com.example.data.preferences.UserPreferences
 import com.example.data.preferences.VoiceOptions
 import com.example.ui.theme.AmberPro
-import com.example.ui.theme.AmberProLight
-import com.example.ui.theme.DarkBorderSubtle
-import com.example.ui.theme.DarkCanvas
-import com.example.ui.theme.DarkSurface
-import com.example.ui.theme.DarkSurfaceBorder
-import com.example.ui.theme.DarkSurfaceVariant
-import com.example.ui.theme.EmeraldAccent
-import com.example.ui.theme.EmeraldPrimary
-import com.example.ui.theme.GreenBright
-import com.example.ui.theme.GreenHighlight
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.CharcoalTextPrimary
+import com.example.ui.theme.ForestGreenDeep
+import com.example.ui.theme.ForestGreenPrimary
+import com.example.ui.theme.IvoryBackground
+import com.example.ui.theme.PaleSage
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.SageGreen
+import com.example.ui.theme.SlateTextSecondary
+import com.example.ui.theme.WarmBorder
+import com.example.ui.theme.WarmBorderSubtle
 
 @Composable
 fun SettingsDialog(
@@ -100,7 +97,6 @@ fun SettingsDialog(
     val prefs = remember { UserPreferences(context) }
     var imageEngine by remember { mutableStateOf(prefs.imageEnginePreference) }
     var dalleDeployment by remember { mutableStateOf(prefs.azureDalleDeployment) }
-    var soraDeployment by remember { mutableStateOf(prefs.azureSoraDeployment) }
 
     val scrollState = rememberScrollState()
 
@@ -109,216 +105,109 @@ fun SettingsDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = DarkSurface,
-            border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceBorder),
+            shape = RoundedCornerShape(20.dp),
+            color = IvoryBackground,
+            border = androidx.compose.foundation.BorderStroke(1.dp, WarmBorder),
             modifier = Modifier
-                .fillMaxWidth(0.92f)
+                .fillMaxWidth(0.94f)
                 .heightIn(max = 680.dp)
                 .padding(vertical = 16.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Header (ChatGPT & Claude Style: Clean Title with Close Button)
+                // Fixed Header: Refined Title, Glyphs, and Close Button
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 18.dp),
+                        .background(PureWhite)
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(PaleSage)
+                                .border(1.dp, SageGreen, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AsyncImage(
+                                model = com.example.R.drawable.ic_orki_inapp_logo_circle,
+                                contentDescription = "Orki AI Logo",
                                 modifier = Modifier
-                                    .size(28.dp)
+                                    .size(32.dp)
                                     .clip(CircleShape)
-                                    .background(DarkSurfaceVariant)
-                                    .border(1.dp, DarkSurfaceBorder, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = TextPrimary,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Settings",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary
                             )
                         }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Preferences, speech voice & personalization",
-                            fontSize = 12.sp,
-                            color = TextMuted,
-                            modifier = Modifier.padding(start = 38.dp)
-                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Settings",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = CharcoalTextPrimary
+                            )
+                            Text(
+                                text = "Preferences, speech voice & personalization",
+                                fontSize = 12.sp,
+                                color = SlateTextSecondary
+                            )
+                        }
                     }
 
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(34.dp)
                             .clip(CircleShape)
-                            .background(DarkSurfaceVariant)
+                            .background(PaleSage)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close settings",
-                            tint = TextSecondary,
+                            tint = SlateTextSecondary,
                             modifier = Modifier.size(16.dp)
                         )
                     }
                 }
 
-                // Subtle divider
+                // Header Divider
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(1.dp)
-                        .background(DarkSurfaceBorder)
+                        .background(WarmBorder)
                 )
 
-                // Content Sections (Categorized Grouped Cards)
+                // Independently Scrollable Settings Content
                 Column(
                     modifier = Modifier
                         .weight(1f, fill = false)
                         .verticalScroll(scrollState)
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // SECTION 1: VOICE PREFERENCE (The Star Feature)
-                    SettingsSection(title = "VOICE & SPEECH") {
-                        Text(
-                            text = "Choose the voice model used for audio playback & Live Talk.",
-                            fontSize = 12.sp,
-                            color = TextSecondary,
-                            modifier = Modifier.padding(bottom = 10.dp)
-                        )
-
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            VoiceOptions.ALL.forEach { profile ->
-                                val isSelected = profile.id == voice
-                                val isCurrentlyPlaying = (lastPreviewedVoiceId == profile.id && activePlayingText != null)
-
-                                VoiceOptionCard(
-                                    profileName = profile.name,
-                                    profileDesc = profile.description,
-                                    samplePhrase = profile.samplePhrase,
-                                    isSelected = isSelected,
-                                    isPlaying = isCurrentlyPlaying,
-                                    onSelect = { voice = profile.id },
-                                    onPlayPreview = {
-                                        lastPreviewedVoiceId = profile.id
-                                        onPreviewVoice(profile.id)
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    // SECTION 2: PERSONALIZATION
-                    SettingsSection(title = "PERSONALIZATION") {
-                        // User Name
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                text = "What should Orki call you?",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = TextPrimary
-                            )
-                            OutlinedTextField(
-                                value = name,
-                                onValueChange = { name = it },
-                                placeholder = {
-                                    Text("e.g., Rahul, Priya, Bodo Friend…", fontSize = 13.sp, color = TextMuted)
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = TextMuted,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                },
-                                singleLine = true,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = DarkSurfaceBorder,
-                                    unfocusedBorderColor = DarkSurfaceBorder,
-                                    focusedTextColor = TextPrimary,
-                                    unfocusedTextColor = TextPrimary,
-                                    cursorColor = GreenBright,
-                                    focusedContainerColor = DarkCanvas,
-                                    unfocusedContainerColor = DarkCanvas
-                                ),
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Custom Instructions / Persona
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                text = "Custom Instructions",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = TextPrimary
-                            )
-                            Text(
-                                text = "Provide background or guidelines Orki should follow when answering.",
-                                fontSize = 11.sp,
-                                color = TextSecondary
-                            )
-                            OutlinedTextField(
-                                value = persona,
-                                onValueChange = { persona = it },
-                                placeholder = {
-                                    Text(
-                                        "e.g., Speak like a friendly tutor, keep answers short and simple…",
-                                        fontSize = 12.sp,
-                                        color = TextMuted
-                                    )
-                                },
-                                maxLines = 3,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = DarkSurfaceBorder,
-                                    unfocusedBorderColor = DarkSurfaceBorder,
-                                    focusedTextColor = TextPrimary,
-                                    unfocusedTextColor = TextPrimary,
-                                    cursorColor = GreenBright,
-                                    focusedContainerColor = DarkCanvas,
-                                    unfocusedContainerColor = DarkCanvas
-                                ),
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
-
-                    // SECTION 3: APP LANGUAGE & SCRIPT
+                    // SECTION 1: LANGUAGE & SCRIPT
                     SettingsSection(title = "LANGUAGE & SCRIPT") {
                         // Interface Language
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
                                 text = "App Interface Language",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = TextPrimary
+                                color = CharcoalTextPrimary
                             )
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(DarkCanvas)
-                                    .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(12.dp))
-                                    .padding(4.dp),
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(PaleSage)
+                                    .border(1.dp, WarmBorder, RoundedCornerShape(10.dp))
+                                    .padding(3.dp),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 SegmentedPill(
@@ -341,10 +230,10 @@ fun SettingsDialog(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         // AI Output Response Script
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -354,21 +243,21 @@ fun SettingsDialog(
                                     text = "AI Response Script",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = TextPrimary
+                                    color = CharcoalTextPrimary
                                 )
                                 Text(
                                     text = if (script == "deva") "बर' फरायनो" else "Roman script",
                                     fontSize = 11.sp,
-                                    color = TextSecondary
+                                    color = SlateTextSecondary
                                 )
                             }
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(DarkCanvas)
-                                    .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(12.dp))
-                                    .padding(4.dp),
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(PaleSage)
+                                    .border(1.dp, WarmBorder, RoundedCornerShape(10.dp))
+                                    .padding(3.dp),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 SegmentedPill(
@@ -386,41 +275,290 @@ fun SettingsDialog(
                         }
                     }
 
-                    // SECTION 4: MEMBERSHIP & PLAN STATUS
+                    // SECTION 2: VOICE & SPEECH (Premium Redesigned Cards)
+                    SettingsSection(title = "VOICE & SPEECH") {
+                        Text(
+                            text = "Select the voice model used for audio playback & Live Talk.",
+                            fontSize = 12.sp,
+                            color = SlateTextSecondary,
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            VoiceOptions.ALL.forEach { profile ->
+                                val isSelected = profile.id == voice
+                                val isCurrentlyPlaying = (lastPreviewedVoiceId == profile.id && activePlayingText != null)
+
+                                // Model Identifier tag (e.g. BRX_F, BRX_M)
+                                val modelTag = when (profile.id) {
+                                    "female_mainao" -> "BRX_F"
+                                    "male_birphung" -> "BRX_M"
+                                    else -> profile.id.take(5).uppercase()
+                                }
+
+                                VoiceOptionCard(
+                                    profileName = profile.name,
+                                    modelId = modelTag,
+                                    profileDesc = profile.description,
+                                    samplePhrase = profile.samplePhrase,
+                                    isSelected = isSelected,
+                                    isPlaying = isCurrentlyPlaying,
+                                    onSelect = { voice = profile.id },
+                                    onPlayPreview = {
+                                        lastPreviewedVoiceId = profile.id
+                                        onPreviewVoice(profile.id)
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    // SECTION 3: PERSONALIZATION
+                    SettingsSection(title = "PERSONALIZATION") {
+                        // User Name
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "What should Orki call you?",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = CharcoalTextPrimary
+                            )
+                            OutlinedTextField(
+                                value = name,
+                                onValueChange = { name = it },
+                                placeholder = {
+                                    Text("e.g., Rahul, Priya, Bodo Friend…", fontSize = 13.sp, color = SlateTextSecondary)
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = SlateTextSecondary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = ForestGreenPrimary,
+                                    unfocusedBorderColor = WarmBorder,
+                                    focusedTextColor = CharcoalTextPrimary,
+                                    unfocusedTextColor = CharcoalTextPrimary,
+                                    cursorColor = ForestGreenPrimary,
+                                    focusedContainerColor = PureWhite,
+                                    unfocusedContainerColor = PureWhite
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Custom Instructions / Persona
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Custom Instructions",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = CharcoalTextPrimary
+                            )
+                            Text(
+                                text = "Provide background or guidelines Orki should follow when answering.",
+                                fontSize = 11.sp,
+                                color = SlateTextSecondary
+                            )
+                            OutlinedTextField(
+                                value = persona,
+                                onValueChange = { persona = it },
+                                placeholder = {
+                                    Text(
+                                        "e.g., Speak like a friendly tutor, keep answers short and simple…",
+                                        fontSize = 12.sp,
+                                        color = SlateTextSecondary
+                                    )
+                                },
+                                maxLines = 3,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = ForestGreenPrimary,
+                                    unfocusedBorderColor = WarmBorder,
+                                    focusedTextColor = CharcoalTextPrimary,
+                                    unfocusedTextColor = CharcoalTextPrimary,
+                                    cursorColor = ForestGreenPrimary,
+                                    focusedContainerColor = PureWhite,
+                                    unfocusedContainerColor = PureWhite
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+
+                    // SECTION 4: AI IMAGE GENERATION ENGINE
+                    SettingsSection(title = "AI IMAGE GENERATION ENGINE") {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // Option 1: Perchance AI (Primary Default)
+                            val isPerchanceSelected = imageEngine == "auto" || imageEngine == "perchance"
+                            EngineOptionRow(
+                                title = "Perchance AI",
+                                badgeText = "PRIMARY • UNLIMITED FREE",
+                                description = "Runs in background with automatic warm-up & zero quota limits",
+                                isSelected = isPerchanceSelected,
+                                onClick = { imageEngine = "auto" }
+                            )
+
+                            // Option 2: Cloudflare Workers AI
+                            val isCfSelected = imageEngine == "cloudflare"
+                            EngineOptionRow(
+                                title = "Cloudflare Workers AI",
+                                badgeText = "2ND FALLBACK",
+                                description = "Fast SDXL/Flux via orki-img-gen worker",
+                                isSelected = isCfSelected,
+                                onClick = { imageEngine = "cloudflare" }
+                            )
+
+                            // Option 3: Azure OpenAI DALL-E 3
+                            val isDalleSelected = imageEngine == "azure_dalle"
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isDalleSelected) PaleSage else PureWhite)
+                                    .border(
+                                        width = if (isDalleSelected) 1.5.dp else 1.dp,
+                                        color = if (isDalleSelected) ForestGreenPrimary else WarmBorder,
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    .clickable { imageEngine = "azure_dalle" }
+                                    .padding(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .clip(CircleShape)
+                                            .border(
+                                                width = if (isDalleSelected) 5.dp else 1.5.dp,
+                                                color = if (isDalleSelected) ForestGreenPrimary else SlateTextSecondary,
+                                                shape = CircleShape
+                                            )
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text("Azure OpenAI DALL-E 3", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = CharcoalTextPrimary)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(4.dp))
+                                                    .background(PaleSage)
+                                                    .border(1.dp, SageGreen, RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                                            ) {
+                                                Text("CUSTOM • $0.04/img", fontSize = 9.sp, color = ForestGreenPrimary, fontWeight = FontWeight.SemiBold)
+                                            }
+                                        }
+                                        Text("Ultra-photorealistic 1024x1024 synthesis via Azure key", fontSize = 11.sp, color = SlateTextSecondary)
+                                    }
+                                    if (isDalleSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Selected",
+                                            tint = ForestGreenPrimary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+
+                                if (isDalleSelected) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    OutlinedTextField(
+                                        value = dalleDeployment,
+                                        onValueChange = { dalleDeployment = it },
+                                        label = { Text("Azure DALL-E Deployment Name", fontSize = 11.sp) },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = ForestGreenPrimary,
+                                            unfocusedBorderColor = WarmBorder,
+                                            focusedTextColor = CharcoalTextPrimary,
+                                            unfocusedTextColor = CharcoalTextPrimary,
+                                            cursorColor = ForestGreenPrimary,
+                                            focusedLabelColor = ForestGreenPrimary,
+                                            focusedContainerColor = PureWhite,
+                                            unfocusedContainerColor = PureWhite
+                                        ),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                }
+                            }
+
+                            // Emergency Backup Status Pill
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(PaleSage)
+                                    .border(1.dp, SageGreen, RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Sync,
+                                    contentDescription = null,
+                                    tint = ForestGreenPrimary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text("Emergency Backup: Pollinations.AI", fontWeight = FontWeight.SemiBold, fontSize = 11.sp, color = CharcoalTextPrimary)
+                                    Text("Active Fallback • Ensures 100% uptime if all other engines fail", fontSize = 10.sp, color = SlateTextSecondary)
+                                }
+                            }
+                        }
+                    }
+
+                    // SECTION 5: ACCOUNT & SUBSCRIPTION
                     SettingsSection(title = "ACCOUNT & SUBSCRIPTION") {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(DarkCanvas)
-                                .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(PureWhite)
+                                .border(1.dp, WarmBorder, RoundedCornerShape(10.dp))
                                 .padding(12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = "Current Plan:",
                                         fontSize = 12.sp,
-                                        color = TextSecondary
+                                        color = SlateTextSecondary
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(6.dp))
                                             .background(
-                                                if (currentPlan == "Pro") AmberPro.copy(alpha = 0.2f)
-                                                else DarkSurfaceVariant
+                                                if (currentPlan == "Pro") AmberPro.copy(alpha = 0.15f)
+                                                else PaleSage
                                             )
-                                            .border(1.dp, DarkBorderSubtle, RoundedCornerShape(6.dp))
+                                            .border(
+                                                1.dp,
+                                                if (currentPlan == "Pro") AmberPro.copy(alpha = 0.4f) else SageGreen,
+                                                RoundedCornerShape(6.dp)
+                                            )
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
                                         Text(
                                             text = currentPlan,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = if (currentPlan == "Pro") AmberPro else TextSecondary
+                                            color = if (currentPlan == "Pro") AmberPro else ForestGreenPrimary
                                         )
                                     }
                                 }
@@ -429,7 +567,7 @@ fun SettingsDialog(
                                     else if (currentPlan == "Plus") "Extended Context & Voice Access"
                                     else "Standard daily conversation quota",
                                     fontSize = 11.sp,
-                                    color = TextMuted,
+                                    color = SlateTextSecondary,
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
                             }
@@ -440,8 +578,8 @@ fun SettingsDialog(
                                         onDismiss()
                                         onUpgradeClick()
                                     },
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceBorder),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ForestGreenPrimary),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, ForestGreenPrimary),
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.height(32.dp)
                                 ) {
@@ -454,315 +592,19 @@ fun SettingsDialog(
                             }
                         }
                     }
-
-                    // SECTION 5: AI IMAGE GENERATION (PERCHANCE AI + CLOUDFLARE + POLLINATIONS)
-                    SettingsSection(title = "AI IMAGE GENERATION ENGINE") {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            // Option 1: Perchance AI (Primary Default)
-                            val isPerchanceSelected = imageEngine == "auto" || imageEngine == "perchance"
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isPerchanceSelected) Color(0x2210B981) else DarkCanvas)
-                                    .border(
-                                        width = if (isPerchanceSelected) 1.5.dp else 1.dp,
-                                        color = if (isPerchanceSelected) GreenHighlight else DarkSurfaceBorder,
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                    .clickable { imageEngine = "auto" }
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0x3310B981)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.AutoAwesome,
-                                        contentDescription = null,
-                                        tint = GreenHighlight,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("Perchance AI", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(4.dp))
-                                                .background(Color(0x3310B981))
-                                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                                        ) {
-                                            Text("PRIMARY • UNLIMITED FREE", fontSize = 9.sp, color = GreenHighlight, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                    Text("Runs in background with automatic warm-up & zero quota limits", fontSize = 10.sp, color = TextSecondary)
-                                }
-                                if (isPerchanceSelected) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = "Selected",
-                                        tint = GreenHighlight,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-
-                            // Option 2: Cloudflare Workers AI (2nd Engine)
-                            val isCfSelected = imageEngine == "cloudflare"
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isCfSelected) Color(0x2206B6D4) else DarkCanvas)
-                                    .border(
-                                        width = if (isCfSelected) 1.5.dp else 1.dp,
-                                        color = if (isCfSelected) Color(0xFF06B6D4) else DarkSurfaceBorder,
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                    .clickable { imageEngine = "cloudflare" }
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0x2206B6D4)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PlayArrow,
-                                        contentDescription = null,
-                                        tint = Color(0xFF06B6D4),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("Cloudflare Workers AI", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(4.dp))
-                                                .background(Color(0x3306B6D4))
-                                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                                        ) {
-                                            Text("2ND FALLBACK", fontSize = 9.sp, color = Color(0xFF67E8F9), fontWeight = FontWeight.SemiBold)
-                                        }
-                                    }
-                                    Text("Fast SDXL/Flux via orki-img-gen worker", fontSize = 10.sp, color = TextSecondary)
-                                }
-                                if (isCfSelected) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = "Selected",
-                                        tint = Color(0xFF06B6D4),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-
-                            // Option 3: Azure OpenAI DALL-E 3
-                            val isDalleSelected = imageEngine == "azure_dalle"
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isDalleSelected) Color(0x228B5CF6) else DarkCanvas)
-                                    .border(
-                                        width = if (isDalleSelected) 1.5.dp else 1.dp,
-                                        color = if (isDalleSelected) Color(0xFFA78BFA) else DarkSurfaceBorder,
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                    .clickable { imageEngine = "azure_dalle" }
-                                    .padding(12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(34.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0x338B5CF6)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.AutoAwesome,
-                                            contentDescription = null,
-                                            tint = Color(0xFFA78BFA),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text("Azure OpenAI DALL-E 3", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(4.dp))
-                                                    .background(Color(0x33A78BFA))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text("CUSTOM • $0.04/img", fontSize = 9.sp, color = Color(0xFFDDD6FE), fontWeight = FontWeight.SemiBold)
-                                            }
-                                        }
-                                        Text("Ultra-photorealistic 1024x1024 synthesis via your Azure key", fontSize = 10.sp, color = TextSecondary)
-                                    }
-                                    if (isDalleSelected) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = "Selected",
-                                            tint = Color(0xFFA78BFA),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-
-                                if (isDalleSelected) {
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    OutlinedTextField(
-                                        value = dalleDeployment,
-                                        onValueChange = { dalleDeployment = it },
-                                        label = { Text("Azure DALL-E Deployment Name", fontSize = 11.sp) },
-                                        singleLine = true,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = Color(0xFFA78BFA),
-                                            unfocusedBorderColor = DarkSurfaceBorder,
-                                            focusedTextColor = TextPrimary,
-                                            unfocusedTextColor = TextPrimary,
-                                            cursorColor = Color(0xFFA78BFA),
-                                            focusedLabelColor = Color(0xFFA78BFA)
-                                        ),
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                }
-                            }
-
-                            // Option 4: Emergency Backup status
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(DarkCanvas)
-                                    .border(1.dp, AmberPro.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
-                                    .padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0x22F59E0B)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Sync,
-                                        contentDescription = null,
-                                        tint = AmberPro,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text("Emergency Backup: Pollinations.AI", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = TextPrimary)
-                                    Text("Active Fallback • Ensures 100% uptime if all other engines fail", fontSize = 9.sp, color = AmberProLight)
-                                }
-                            }
-                        }
-                    }
-
-                    // SECTION 6: AI VIDEO GENERATION (AZURE SORA 2 + JSON2VIDEO)
-                    SettingsSection(title = "AI VIDEO GENERATION") {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0x2206B6D4))
-                                    .border(1.5.dp, Color(0xFF06B6D4), RoundedCornerShape(12.dp))
-                                    .padding(12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(34.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0x3306B6D4)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.PlayArrow,
-                                            contentDescription = null,
-                                            tint = Color(0xFF06B6D4),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text("Azure OpenAI Sora 2", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(4.dp))
-                                                    .background(Color(0x3306B6D4))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text("ACTIVE ENGINE", fontSize = 9.sp, color = Color(0xFF67E8F9), fontWeight = FontWeight.SemiBold)
-                                            }
-                                        }
-                                        Text("Cinematic 1080p AI Video via orkiai.openai.azure.com", fontSize = 10.sp, color = TextSecondary)
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(10.dp))
-                                OutlinedTextField(
-                                    value = soraDeployment,
-                                    onValueChange = { soraDeployment = it },
-                                    label = { Text("Azure Sora Deployment Name", fontSize = 11.sp) },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = Color(0xFF06B6D4),
-                                        unfocusedBorderColor = DarkSurfaceBorder,
-                                        focusedTextColor = TextPrimary,
-                                        unfocusedTextColor = TextPrimary,
-                                        cursorColor = Color(0xFF06B6D4),
-                                        focusedLabelColor = Color(0xFF06B6D4)
-                                    ),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                            }
-                        }
-                    }
                 }
 
-                // Sticky Bottom Action Bar
+                // Fixed Bottom Action Bar: Cancel & Save Changes
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(DarkSurface)
+                        .background(PureWhite)
                         .border(
                             width = 1.dp,
-                            color = DarkSurfaceBorder,
-                            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+                            color = WarmBorder,
+                            shape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)
                         )
-                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                        .padding(horizontal = 18.dp, vertical = 12.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -770,12 +612,12 @@ fun SettingsDialog(
                     ) {
                         OutlinedButton(
                             onClick = onDismiss,
-                            shape = RoundedCornerShape(12.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceBorder),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
+                            shape = RoundedCornerShape(10.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, WarmBorder),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = SlateTextSecondary),
                             modifier = Modifier
                                 .weight(1f)
-                                .height(44.dp)
+                                .height(42.dp)
                         ) {
                             Text(text = "Cancel", fontSize = 13.sp)
                         }
@@ -784,21 +626,22 @@ fun SettingsDialog(
                             onClick = {
                                 prefs.imageEnginePreference = imageEngine
                                 prefs.azureDalleDeployment = dalleDeployment.trim().ifEmpty { "dall-e-3" }
-                                prefs.azureSoraDeployment = soraDeployment.trim().ifEmpty { "sora-2" }
                                 onSave(script, uiLang, name.trim(), persona.trim(), voice)
                                 onDismiss()
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = GreenBright),
-                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ForestGreenPrimary,
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier
-                                .weight(1.5f)
-                                .height(44.dp)
+                                .weight(1.4f)
+                                .height(42.dp)
                         ) {
                             Text(
                                 text = "Save Changes",
-                                color = Color.Black,
                                 fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
@@ -814,13 +657,13 @@ private fun SettingsSection(
     content: @Composable () -> Unit
 ) {
     Surface(
-        color = DarkSurfaceVariant,
-        shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceBorder),
+        color = PureWhite,
+        shape = RoundedCornerShape(14.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, WarmBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
@@ -828,7 +671,7 @@ private fun SettingsSection(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.8.sp,
-                color = TextSecondary
+                color = ForestGreenPrimary
             )
             Spacer(modifier = Modifier.height(2.dp))
             content()
@@ -836,9 +679,16 @@ private fun SettingsSection(
     }
 }
 
+/**
+ * Premium Voice Selection Card:
+ * Clear visual hierarchy, voice name, short description, model ID tag,
+ * properly aligned radio indicator, subtle pale-sage background with thin forest-green border when selected,
+ * and compact Preview button with speaker icon / wave animation.
+ */
 @Composable
 private fun VoiceOptionCard(
     profileName: String,
+    modelId: String,
     profileDesc: String,
     samplePhrase: String,
     isSelected: Boolean,
@@ -846,23 +696,16 @@ private fun VoiceOptionCard(
     onSelect: () -> Unit,
     onPlayPreview: () -> Unit
 ) {
-    val borderColor = if (isSelected) EmeraldPrimary else DarkSurfaceBorder
-    val bgModifier = if (isSelected) {
-        Modifier.background(
-            brush = Brush.horizontalGradient(
-                colors = listOf(Color(0x2810B981), Color(0x1010B981))
-            )
-        )
-    } else {
-        Modifier.background(DarkCanvas)
-    }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .then(bgModifier)
-            .border(1.dp, borderColor, RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (isSelected) PaleSage else PureWhite)
+            .border(
+                width = if (isSelected) 1.5.dp else 1.dp,
+                color = if (isSelected) ForestGreenPrimary else WarmBorder,
+                shape = RoundedCornerShape(12.dp)
+            )
             .clickable(onClick = onSelect)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -872,14 +715,14 @@ private fun VoiceOptionCard(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Radio Circle
+            // Radio Indicator
             Box(
                 modifier = Modifier
                     .size(18.dp)
                     .clip(CircleShape)
                     .border(
                         width = if (isSelected) 5.dp else 1.5.dp,
-                        color = if (isSelected) EmeraldPrimary else TextMuted,
+                        color = if (isSelected) ForestGreenPrimary else SlateTextSecondary,
                         shape = CircleShape
                     )
             )
@@ -892,33 +735,53 @@ private fun VoiceOptionCard(
                         text = profileName,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isSelected) EmeraldAccent else TextPrimary
+                        color = CharcoalTextPrimary
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (isSelected) SageGreen.copy(alpha = 0.5f) else PaleSage)
+                            .border(
+                                1.dp,
+                                if (isSelected) ForestGreenPrimary.copy(alpha = 0.3f) else WarmBorder,
+                                RoundedCornerShape(4.dp)
+                            )
+                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            text = modelId,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = ForestGreenPrimary
+                        )
+                    }
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "•  $samplePhrase",
                         fontSize = 10.sp,
-                        color = TextMuted,
+                        color = SlateTextSecondary,
                         fontWeight = FontWeight.Normal
                     )
                 }
                 Text(
                     text = profileDesc,
                     fontSize = 11.sp,
-                    color = TextSecondary
+                    color = SlateTextSecondary,
+                    modifier = Modifier.padding(top = 1.dp)
                 )
             }
         }
 
-        // Preview Speaker Button (Preloaded Track Player)
+        // Compact Preview Button (Speaker Icon & Accessible Touch Target)
         Box(
             modifier = Modifier
-                .padding(start = 6.dp)
+                .padding(start = 8.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(if (isPlaying) Color(0x3810B981) else DarkSurfaceVariant)
+                .background(if (isPlaying) ForestGreenPrimary.copy(alpha = 0.12f) else PaleSage)
                 .border(
                     1.dp,
-                    if (isPlaying) EmeraldAccent else DarkSurfaceBorder,
+                    if (isPlaying) ForestGreenPrimary else SageGreen,
                     RoundedCornerShape(8.dp)
                 )
                 .clickable(onClick = onPlayPreview)
@@ -935,17 +798,77 @@ private fun VoiceOptionCard(
                     Icon(
                         imageVector = Icons.Default.VolumeUp,
                         contentDescription = "Preview voice",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(14.dp)
+                        tint = ForestGreenPrimary,
+                        modifier = Modifier.size(13.dp)
                     )
                 }
                 Text(
                     text = if (isPlaying) "Playing" else "Preview",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isPlaying) EmeraldAccent else TextSecondary
+                    color = ForestGreenPrimary
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun EngineOptionRow(
+    title: String,
+    badgeText: String,
+    description: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (isSelected) PaleSage else PureWhite)
+            .border(
+                width = if (isSelected) 1.5.dp else 1.dp,
+                color = if (isSelected) ForestGreenPrimary else WarmBorder,
+                shape = RoundedCornerShape(10.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(18.dp)
+                .clip(CircleShape)
+                .border(
+                    width = if (isSelected) 5.dp else 1.5.dp,
+                    color = if (isSelected) ForestGreenPrimary else SlateTextSecondary,
+                    shape = CircleShape
+                )
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(title, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = CharcoalTextPrimary)
+                Spacer(modifier = Modifier.width(6.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(PaleSage)
+                        .border(1.dp, SageGreen, RoundedCornerShape(4.dp))
+                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                ) {
+                    Text(badgeText, fontSize = 9.sp, color = ForestGreenPrimary, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            Text(description, fontSize = 11.sp, color = SlateTextSecondary)
+        }
+        if (isSelected) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = "Selected",
+                tint = ForestGreenPrimary,
+                modifier = Modifier.size(16.dp)
+            )
         }
     }
 }
@@ -991,21 +914,21 @@ private fun AudioWaveAnimation() {
                 .width(2.dp)
                 .height(h1.dp)
                 .clip(CircleShape)
-                .background(EmeraldAccent)
+                .background(ForestGreenPrimary)
         )
         Box(
             modifier = Modifier
                 .width(2.dp)
                 .height(h2.dp)
                 .clip(CircleShape)
-                .background(EmeraldAccent)
+                .background(ForestGreenPrimary)
         )
         Box(
             modifier = Modifier
                 .width(2.dp)
                 .height(h3.dp)
                 .clip(CircleShape)
-                .background(EmeraldAccent)
+                .background(ForestGreenPrimary)
         )
     }
 }
@@ -1020,21 +943,21 @@ private fun SegmentedPill(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(if (selected) DarkSurfaceVariant else Color.Transparent)
+            .background(if (selected) PureWhite else Color.Transparent)
             .border(
                 1.dp,
-                if (selected) DarkSurfaceBorder else Color.Transparent,
+                if (selected) SageGreen else Color.Transparent,
                 RoundedCornerShape(8.dp)
             )
             .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
+            .padding(vertical = 7.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
             fontSize = 11.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = if (selected) TextPrimary else TextSecondary
+            color = if (selected) ForestGreenPrimary else SlateTextSecondary
         )
     }
 }

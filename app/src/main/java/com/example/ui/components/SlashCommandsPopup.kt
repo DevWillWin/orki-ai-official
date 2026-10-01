@@ -48,8 +48,7 @@ import com.example.ui.theme.WarmBorder
 
 enum class ActiveGenerationMode {
     NONE,
-    IMAGE,
-    VIDEO
+    IMAGE
 }
 
 data class SlashCommandItem(
@@ -67,13 +66,6 @@ val AvailableSlashCommands = listOf(
         description = "Generate photorealistic art from text prompts",
         icon = Icons.Default.AutoAwesome,
         mode = ActiveGenerationMode.IMAGE
-    ),
-    SlashCommandItem(
-        command = "/video",
-        title = "Generate Video",
-        description = "Render 8-second cinematic motion clips",
-        icon = Icons.Default.Videocam,
-        mode = ActiveGenerationMode.VIDEO
     )
 )
 

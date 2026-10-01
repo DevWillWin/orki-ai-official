@@ -464,32 +464,13 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
         val lower = t.lowercase()
 
         // 1. Explicit Slash Commands
-        val slashVideoRegex = Regex("^/(video|vid|clip)\\s+(.+)$", RegexOption.IGNORE_CASE)
-        val slashVideoMatch = slashVideoRegex.find(t)
-        if (slashVideoMatch != null) {
-            return VisualIntent("video", slashVideoMatch.groupValues[2].trim())
-        }
-
         val slashImageRegex = Regex("^/(image|imagine|draw|img)\\s+(.+)$", RegexOption.IGNORE_CASE)
         val slashImageMatch = slashImageRegex.find(t)
         if (slashImageMatch != null) {
             return VisualIntent("image", slashImageMatch.groupValues[2].trim())
         }
 
-        // 2. Natural Video Request Intents (Handles 'can you create a video of', 'make a video', typos like 'vedio', etc.)
-        val videoPattern = Regex(
-            "^(?:hey\\s+orki\\s*,?\\s*|can\\s+you\\s+(?:please\\s+)?|could\\s+you\\s+(?:please\\s+)?|please\\s+|i\\s+want\\s+(?:you\\s+to\\s+|a\\s+)?|make\\s+me\\s+a\\s+|give\\s+me\\s+a\\s+|show\\s+me\\s+a\\s+)?(?:generate|create|ceeate|make|render|produce|show|give)?\\s*(?:an?\\s+)?(?:ai\\s+)?(?:video|clip|movie|animation|vedio|vidoe)\\s*(?:of|about|showing|with|for|depicting)?\\s*(.+)$",
-            RegexOption.IGNORE_CASE
-        )
-        val videoMatch = videoPattern.find(t)
-        if (videoMatch != null && videoMatch.groupValues[1].isNotBlank()) {
-            val candidate = videoMatch.groupValues[1].trim()
-            if (candidate.length >= 2) {
-                return VisualIntent("video", candidate)
-            }
-        }
-
-        // 3. Natural Image Request Intents (Handles 'create a inage of', 'draw me a', 'picture of', etc.)
+        // 2. Natural Image Request Intents (Handles 'create an image of', 'draw me a', 'picture of', etc.)
         val imagePattern = Regex(
             "^(?:hey\\s+orki\\s*,?\\s*|can\\s+you\\s+(?:please\\s+)?|could\\s+you\\s+(?:please\\s+)?|please\\s+|i\\s+want\\s+(?:you\\s+to\\s+|a\\s+)?|make\\s+me\\s+a\\s+|give\\s+me\\s+a\\s+|show\\s+me\\s+a\\s+)?(?:generate|create|ceeate|make|render|produce|draw|paint|illustrate|show|give)?\\s*(?:an?\\s+)?(?:ai\\s+)?(?:image|inage|picture|piture|photo|artwork|drawing|illustration|painting|wallpaper)\\s*(?:of|about|showing|with|for|depicting)?\\s*(.+)$",
             RegexOption.IGNORE_CASE
@@ -502,7 +483,7 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // 4. Drawing Commands (e.g. 'draw a cat', 'draw me a girl in dokhona')
+        // 3. Drawing Commands (e.g. 'draw a cat', 'draw me a girl in dokhona')
         val drawPattern = Regex(
             "^(?:can\\s+you\\s+(?:please\\s+)?|could\\s+you\\s+(?:please\\s+)?|please\\s+)?(?:draw|paint|illustrate)\\s*(?:me\\s+)?(?:an?\\s+)?(.+)$",
             RegexOption.IGNORE_CASE
@@ -515,11 +496,7 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // 5. Bodo Language Triggers
-        if (lower.contains("भिदिअ बानाय") || lower.contains("बानाय भिदिअ")) {
-            val clean = t.replace(Regex("भिदिअ|बानाय"), "").trim()
-            if (clean.isNotEmpty()) return VisualIntent("video", clean)
-        }
+        // 4. Bodo Language Triggers
         if (lower.contains("छबि बानाय") || lower.contains("बानाय छबि")) {
             val clean = t.replace(Regex("छबि|बानाय"), "").trim()
             if (clean.isNotEmpty()) return VisualIntent("image", clean)
@@ -534,30 +511,10 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
         if (trimmed.isEmpty() && attachment == null) return
         if (_uiState.value.isGenerating) return
 
-        val isGuest = _uiState.value.currentPlan == "Guest" || !_uiState.value.isLoggedIn
-        if (isGuest) {
-            val lower = trimmed.lowercase()
-            val isVideoRequest = lower.contains("video") ||
-                    lower.contains("animation") ||
-                    lower.contains("animate") ||
-                    lower.contains("movie") ||
-                    lower.contains("clip")
-            if (isVideoRequest) {
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = "Guest users cannot create videos. Please sign in or create an account to unlock video creations!",
-                    triggerLoginDialog = true
-                )
-                return
-            }
-        }
-
-        // Intelligent Visual Intent Detection (Natural language Image/Video requests + slash commands)
+        // Intelligent Visual Intent Detection (Natural language Image requests + slash commands)
         val visualIntent = extractVisualIntent(trimmed)
         if (visualIntent != null && attachment == null) {
-            if (visualIntent.type == "video") {
-                generateVideo(visualIntent.prompt)
-                return
-            } else if (visualIntent.type == "image") {
+            if (visualIntent.type == "image") {
                 generateImage(visualIntent.prompt)
                 return
             }
@@ -786,154 +743,7 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun generateVideo(prompt: String) {
-        val trimmed = prompt.trim()
-        if (trimmed.isEmpty()) return
-
-        // Concurrency Guard: Only 1 video request at a time
-        if (_uiState.value.isGeneratingVideo) {
-            val busyMessage = ChatMessageEntity(
-                id = UUID.randomUUID().toString(),
-                conversationId = _uiState.value.currentConversationId ?: "",
-                role = "model",
-                text = "⚠️ Video generation server is currently busy with another render. On this tier, only 1 video can be processed at a time. Please wait a few moments and try again!",
-                timestamp = System.currentTimeMillis()
-            )
-            val updatedMessages = _uiState.value.messages + busyMessage
-            _uiState.value = _uiState.value.copy(messages = updatedMessages)
-            viewModelScope.launch { persistThread(updatedMessages) }
-            return
-        }
-
-        if (_uiState.value.isGenerating) return
-        if (!checkQuota()) return
-
-        val userMessage = ChatMessageEntity(
-            id = UUID.randomUUID().toString(),
-            conversationId = _uiState.value.currentConversationId ?: "",
-            role = "user",
-            text = "🎬 /video $trimmed",
-            timestamp = System.currentTimeMillis()
-        )
-
-        val updatedMessages = _uiState.value.messages + userMessage
-        _uiState.value = _uiState.value.copy(
-            messages = updatedMessages,
-            isGenerating = true,
-            isThinking = false,
-            isGeneratingVideo = true,
-            videoGenProgress = 10,
-            videoGenStage = "Connecting to Azure OpenAI Sora 2...",
-            videoGenPrompt = trimmed,
-            videoGenEngine = "OpenAI Sora 2 (Azure AI)",
-            isVideoGenFallback = false,
-            currentStreamingResponse = ""
-        )
-
-        activeStreamJob = viewModelScope.launch {
-            try {
-                // Enhance visual prompt with Gemini AI
-                _uiState.value = _uiState.value.copy(
-                    videoGenProgress = 15,
-                    videoGenStage = "✨ Enhancing cinematography & scene motion..."
-                )
-
-                val enhancedPrompt = try {
-                    apiService.enhanceVisualPrompt(trimmed, isVideo = true)
-                } catch (_: Exception) {
-                    trimmed
-                }
-
-                _uiState.value = _uiState.value.copy(
-                    videoGenProgress = 25,
-                    videoGenStage = "Submitting scene to Azure OpenAI Sora 2..."
-                )
-
-                val result = videoService.generateVideo(
-                    prompt = enhancedPrompt,
-                    azureEndpoint = prefs.azureOpenAiEndpoint,
-                    azureKey = prefs.azureOpenAiKey,
-                    modelDeployment = prefs.azureSoraDeployment,
-                    onStatusUpdate = { progress, stageText, isFallback ->
-                        _uiState.value = _uiState.value.copy(
-                            videoGenProgress = progress,
-                            videoGenStage = stageText,
-                            isVideoGenFallback = isFallback,
-                            videoGenEngine = "OpenAI Sora 2 (Azure AI)"
-                        )
-                    }
-                )
-
-                result.onSuccess { generated ->
-                    val videoFile = generated.file
-                    _uiState.value = _uiState.value.copy(
-                        videoGenProgress = 100,
-                        videoGenStage = "Sora 2 video render complete!"
-                    )
-                    delay(300)
-
-                    val responseText = "Here is your 4s Sora 2 video for: \"$trimmed\"\n\n✨ **Generated via OpenAI Sora 2 on Azure AI**"
-
-                    val assistantMessage = ChatMessageEntity(
-                        id = UUID.randomUUID().toString(),
-                        conversationId = _uiState.value.currentConversationId ?: "",
-                        role = "model",
-                        text = responseText,
-                        attachmentName = videoFile.name,
-                        attachmentType = "generated_video",
-                        attachmentSize = videoFile.length(),
-                        attachmentUri = videoFile.absolutePath,
-                        timestamp = System.currentTimeMillis()
-                    )
-
-                    val finalizedMessages = _uiState.value.messages + assistantMessage
-                    val activeEmail = if (_uiState.value.isLoggedIn) _uiState.value.userEmail else ""
-                    val newUsage = prefs.incrementDailyUsage(activeEmail)
-
-                    _uiState.value = _uiState.value.copy(
-                        messages = finalizedMessages,
-                        isGenerating = false,
-                        isThinking = false,
-                        isGeneratingVideo = false,
-                        videoGenProgress = 0,
-                        videoGenStage = "",
-                        videoGenPrompt = "",
-                        dailyUsage = newUsage
-                    )
-                    persistThread(finalizedMessages)
-                }.onFailure { error ->
-                    val errorMsg = error.localizedMessage ?: "Unknown error"
-                    val assistantError = ChatMessageEntity(
-                        id = UUID.randomUUID().toString(),
-                        conversationId = _uiState.value.currentConversationId ?: "",
-                        role = "model",
-                        text = "⚠️ **Azure Sora 2 Notice:**\n$errorMsg\n\n💡 *Tip: Make sure you have deployed 'sora-2' in Azure AI Foundry (ai.azure.com -> Deployments).* ",
-                        timestamp = System.currentTimeMillis()
-                    )
-                    val finalizedMessages = _uiState.value.messages + assistantError
-                    _uiState.value = _uiState.value.copy(
-                        messages = finalizedMessages,
-                        isGenerating = false,
-                        isThinking = false,
-                        isGeneratingVideo = false,
-                        videoGenProgress = 0,
-                        videoGenStage = "",
-                        videoGenPrompt = "",
-                        errorMessage = errorMsg
-                    )
-                    persistThread(finalizedMessages)
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isGenerating = false,
-                    isThinking = false,
-                    isGeneratingVideo = false,
-                    videoGenProgress = 0,
-                    videoGenStage = ""
-                )
-            }
-        }
+        // Video generation disabled per user request
     }
 
     fun sendGeneratedImageToChat(prompt: String, imageFile: File) {

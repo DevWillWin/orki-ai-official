@@ -59,7 +59,6 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
@@ -101,6 +100,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import com.example.R
 import com.example.data.local.ChatMessageEntity
 import com.example.data.preferences.UiTranslations
 import com.example.ui.components.ActiveGenerationMode
@@ -110,7 +111,6 @@ import com.example.ui.components.ChatMessageItem
 import com.example.ui.components.DrawerContent
 import com.example.ui.components.ImageGenProgressCard
 import com.example.ui.components.SlashCommandsPopup
-import com.example.ui.components.VideoGenProgressCard
 import com.example.ui.components.LiveTalkOverlay
 import com.example.ui.components.LoginDialog
 import com.example.ui.components.SettingsDialog
@@ -225,12 +225,11 @@ fun MainChatScreen(
 
     val isImeVisible = WindowInsets.isImeVisible
 
-    // Scroll to bottom when new messages arrive, keyboard opens, response streams or image/video is generating
-    LaunchedEffect(uiState.messages.size, isImeVisible, uiState.currentStreamingResponse, uiState.isGeneratingImage, uiState.isGeneratingVideo) {
+    // Scroll to bottom when new messages arrive, keyboard opens, response streams or image is generating
+    LaunchedEffect(uiState.messages.size, isImeVisible, uiState.currentStreamingResponse, uiState.isGeneratingImage) {
         val totalCount = uiState.messages.size +
             (if (uiState.currentStreamingResponse.isNotEmpty()) 1 else 0) +
-            (if (uiState.isGeneratingImage) 1 else 0) +
-            (if (uiState.isGeneratingVideo) 1 else 0)
+            (if (uiState.isGeneratingImage) 1 else 0)
         if (totalCount > 0) {
             listState.animateScrollToItem(totalCount - 1)
         }
@@ -588,9 +587,8 @@ fun MainChatScreen(
                         }
                     )
 
-                    // Active Generation Mode Card (Image or Video)
-                    AnimatedVisibility(visible = activeGenMode != ActiveGenerationMode.NONE) {
-                        val isImage = activeGenMode == ActiveGenerationMode.IMAGE
+                    // Active Generation Mode Card (Image)
+                    AnimatedVisibility(visible = activeGenMode == ActiveGenerationMode.IMAGE) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -614,7 +612,7 @@ fun MainChatScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = if (isImage) Icons.Default.AutoAwesome else Icons.Default.Videocam,
+                                        imageVector = Icons.Default.AutoAwesome,
                                         contentDescription = null,
                                         tint = ForestGreenPrimary,
                                         modifier = Modifier.size(18.dp)
@@ -623,7 +621,7 @@ fun MainChatScreen(
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        text = if (isImage) "AI Image Generation Mode" else "AI Video Generation Mode",
+                                        text = "AI Image Generation Mode",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = CharcoalTextPrimary,
@@ -631,7 +629,7 @@ fun MainChatScreen(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
-                                        text = if (isImage) "Perchance AI & Cloudflare • Type prompt below" else "Cinematic 8s Video • Type prompt below",
+                                        text = "Perchance AI & Cloudflare • Type prompt below",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = SlateTextSecondary
                                     )
@@ -643,7 +641,7 @@ fun MainChatScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Cancel mode",
+                                    contentDescription = "Cancel image mode",
                                     tint = SlateTextSecondary,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -699,7 +697,6 @@ fun MainChatScreen(
                                     Text(
                                         text = when {
                                             activeGenMode == ActiveGenerationMode.IMAGE -> "Describe the image to generate…"
-                                            activeGenMode == ActiveGenerationMode.VIDEO -> "Describe the video scene to animate…"
                                             uiState.attachedFile != null -> "Ask about this file or send…"
                                             else -> strings.inputPlaceholder
                                         },
@@ -790,14 +787,6 @@ fun MainChatScreen(
                                                     inputText = ""
                                                     activeGenMode = ActiveGenerationMode.NONE
                                                 }
-                                                activeGenMode == ActiveGenerationMode.VIDEO || trimmed.startsWith("/video ") -> {
-                                                    val prompt = if (trimmed.startsWith("/video ")) trimmed.removePrefix("/video ").trim() else trimmed
-                                                    if (prompt.isNotBlank()) {
-                                                        viewModel.generateVideo(prompt)
-                                                    }
-                                                    inputText = ""
-                                                    activeGenMode = ActiveGenerationMode.NONE
-                                                }
                                                 else -> {
                                                     viewModel.sendMessage(inputText)
                                                     inputText = ""
@@ -857,20 +846,21 @@ fun MainChatScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        // AI Sparkle Emblem with neutral dark surface and subtle border
+                        // In-app Logo Emblem with Pale Sage surface and subtle border
                         Box(
                             modifier = Modifier
-                                .size(64.dp)
+                                .size(72.dp)
                                 .clip(CircleShape)
-                                .background(DarkSurfaceVariant)
-                                .border(1.dp, DarkSurfaceBorder, CircleShape),
+                                .background(PaleSage)
+                                .border(1.5.dp, SageGreen, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = "Orki AI",
-                                tint = TextPrimary,
-                                modifier = Modifier.size(28.dp)
+                            AsyncImage(
+                                model = com.example.R.drawable.ic_orki_inapp_logo_circle,
+                                contentDescription = "Orki AI Logo",
+                                modifier = Modifier
+                                    .size(68.dp)
+                                    .clip(CircleShape)
                             )
                         }
 
@@ -978,20 +968,6 @@ fun MainChatScreen(
                                     stage = uiState.imageGenStage,
                                     engineName = uiState.imageGenEngine,
                                     isFallback = uiState.isImageGenFallback,
-                                    onCancel = { viewModel.cancelGeneration() }
-                                )
-                            }
-                        }
-
-                        // Real-time AI Video Generation Card with live progress percentage
-                        if (uiState.isGeneratingVideo) {
-                            item(key = "video_gen_progress") {
-                                VideoGenProgressCard(
-                                    prompt = uiState.videoGenPrompt,
-                                    progress = uiState.videoGenProgress,
-                                    stage = uiState.videoGenStage,
-                                    engineName = uiState.videoGenEngine,
-                                    isFallback = uiState.isVideoGenFallback,
                                     onCancel = { viewModel.cancelGeneration() }
                                 )
                             }

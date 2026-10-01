@@ -3,7 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/ic_orki_logo"
+        android:drawable="@drawable/ic_orki_symbol"
         android:gravity="center" />
 </layer-list>
-

@@ -62,6 +62,7 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -298,6 +299,7 @@ fun MainChatScreen(
                 userEmail = uiState.userEmail,
                 userName = uiState.userName,
                 conversations = conversations,
+                isConversationHistoryLoading = uiState.isConversationHistoryLoading,
                 selectedConversationId = uiState.currentConversationId,
                 onSelectConversation = { id ->
                     viewModel.selectConversation(id)
@@ -1009,6 +1011,20 @@ fun MainChatScreen(
                             }
                         }
                     }
+                }
+
+                // Saved preferences/account state is restored in the background. The full chat UI
+                // remains usable; this slim indicator avoids presenting an ambiguous empty state.
+                if (uiState.isRestoringSession) {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .testTag("session_restore_progress"),
+                        color = ForestGreenPrimary,
+                        trackColor = PaleSage
+                    )
                 }
 
                 // Floating Audio Player Pill

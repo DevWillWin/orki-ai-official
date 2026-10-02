@@ -48,8 +48,11 @@ class AudioManager(
     // Cache of text to resolved audio URL
     val ttsUrlCache = mutableMapOf<String, String>()
 
-    // Persistent disk cache for synthesized audio
-    private val ttsDiskCacheDir = File(context.cacheDir, "tts_disk_cache").apply { mkdirs() }
+    // Persistent disk cache for synthesized audio. Do not touch storage while the first frame is
+    // being built; the directory is created only when a TTS cache operation is requested.
+    private val ttsDiskCacheDir by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        File(context.cacheDir, "tts_disk_cache").apply { mkdirs() }
+    }
 
     fun getCachedTtsPath(text: String, voice: String): String? {
         val key = "${voice}_${text.trim().hashCode()}"

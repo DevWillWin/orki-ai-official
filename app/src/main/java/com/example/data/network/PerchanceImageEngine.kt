@@ -30,6 +30,7 @@ class PerchanceImageEngine(private val context: Context) {
     private var webView: WebView? = null
     private var isWarmedUp = false
     private var isInitializing = false
+    private var webViewReady = CompletableDeferred<Unit>()
 
     private val pendingRequests = ConcurrentHashMap<String, CompletableDeferred<String>>()
 
@@ -207,11 +208,12 @@ class PerchanceImageEngine(private val context: Context) {
     // never on application startup, to prevent blocking the UI thread with Chromium initialization.
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun ensureWebViewInitialized() {
-        if (webView != null || isInitializing) return
+    private fun ensureWebViewInitialized(): Boolean {
+        if (webView != null || isInitializing) return true
         isInitializing = true
+        if (webViewReady.isCompleted) webViewReady = CompletableDeferred()
 
-        try {
+        return try {
             val wv = WebView(context.applicationContext)
             val settings = wv.settings
             settings.javaScriptEnabled = true
@@ -227,25 +229,41 @@ class PerchanceImageEngine(private val context: Context) {
                     super.onPageFinished(view, url)
                     Log.d(TAG, "Perchance bridge page loaded")
                     isWarmedUp = true
+                    if (!webViewReady.isCompleted) webViewReady.complete(Unit)
                 }
             }
 
             wv.addJavascriptInterface(PerchanceBridge(), "AndroidBridge")
-            wv.loadDataWithBaseURL("https://null.perchance.org", htmlTemplate, "text/html", "UTF-8", null)
-
             this.webView = wv
-            Log.d(TAG, "Headless Perchance WebView initialized successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize Perchance WebView", e)
+            wv.loadDataWithBaseURL(
+                "https://null.perchance.org",
+                htmlTemplate,
+                "text/html",
+                "UTF-8",
+                null
+            )
+
+            Log.d(TAG, "Headless Perchance WebView initialization requested on demand")
+            true
+        } catch (error: Throwable) {
+            webView = null
+            if (!webViewReady.isCompleted) webViewReady.completeExceptionally(error)
+            Log.e(TAG, "Failed to initialize Perchance WebView", error)
+            false
         } finally {
             isInitializing = false
         }
     }
 
     fun warmUp() {
+        // Kept for explicit, feature-level warm-up only. App startup never calls this method.
         mainHandler.post {
-            ensureWebViewInitialized()
-            webView?.evaluateJavascript("warmUp();", null)
+            if (ensureWebViewInitialized()) {
+                webView?.evaluateJavascript(
+                    "if (typeof warmUp === 'function') { warmUp(); }",
+                    null
+                )
+            }
         }
     }
 
@@ -257,18 +275,47 @@ class PerchanceImageEngine(private val context: Context) {
         val deferred = CompletableDeferred<String>()
         pendingRequests[requestId] = deferred
 
-        // Dispatch JS call on main thread
-        withContext(Dispatchers.Main) {
+        // Chromium is expensive to initialize, so create it only after the user requests an image.
+        // Wait asynchronously for the local bridge page rather than blocking the main thread.
+        val initializationRequested = withContext(Dispatchers.Main) {
             ensureWebViewInitialized()
+        }
+        if (!initializationRequested) {
+            pendingRequests.remove(requestId)
+            return@withContext Result.failure(Exception("Image engine could not be initialized"))
+        }
+
+        val bridgeReady = withTimeoutOrNull(TimeUnit.SECONDS.toMillis(8)) {
+            try {
+                webViewReady.await()
+                true
+            } catch (error: Throwable) {
+                Log.e(TAG, "Perchance bridge initialization failed", error)
+                false
+            }
+        } ?: false
+
+        if (!bridgeReady) {
+            pendingRequests.remove(requestId)
+            return@withContext Result.failure(Exception("Image engine did not become ready"))
+        }
+
+        val javascriptDispatched = withContext(Dispatchers.Main) {
+            val activeWebView = webView ?: return@withContext false
             val sanitizedPrompt = prompt.replace("\\", "\\\\")
                 .replace("\"", "\\\"")
                 .replace("\n", " ")
                 .trim()
             val jsCall = "generateImage(\"$sanitizedPrompt\", \"$requestId\", \"768x768\");"
-            webView?.evaluateJavascript(jsCall, null)
+            activeWebView.evaluateJavascript(jsCall, null)
+            true
+        }
+        if (!javascriptDispatched) {
+            pendingRequests.remove(requestId)
+            return@withContext Result.failure(Exception("Image engine became unavailable"))
         }
 
-        // Wait with timeout
+        // Wait with timeout without occupying the UI thread.
         val imageUrl = withTimeoutOrNull(TimeUnit.SECONDS.toMillis(timeoutSeconds)) {
             try {
                 deferred.await()

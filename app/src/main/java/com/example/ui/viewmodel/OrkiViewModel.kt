@@ -2,9 +2,11 @@ package com.example.ui.viewmodel
 
 import android.app.Activity
 import android.app.Application
+import android.net.Uri
+import android.os.SystemClock
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import android.net.Uri
 import com.example.data.audio.AudioManager
 import com.example.data.audio.AudioPlayerState
 import com.example.data.billing.PlayBillingManager
@@ -12,12 +14,16 @@ import com.example.data.local.AppDatabase
 import com.example.data.local.ChatMessageEntity
 import com.example.data.local.ConversationEntity
 import com.example.data.network.ImageGenerationService
-import com.example.data.network.VideoGenerationService
 import com.example.data.network.OrkiApiService
 import com.example.data.preferences.UserPreferences
 import com.example.data.preferences.VoiceOptions
 import com.example.util.AttachedFile
 import com.example.util.FileUploadHelper
+import java.io.File
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -25,14 +31,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
-import java.util.UUID
 
 enum class LiveTalkStatus {
     IDLE,
@@ -82,30 +93,60 @@ data class UiState(
     val videoGenEngine: String = "Json2video AI Studio (Primary)",
     val isVideoGenFallback: Boolean = false,
     val triggerUpgradeDialog: Boolean = false,
-    val triggerLoginDialog: Boolean = false
+    val triggerLoginDialog: Boolean = false,
+    val isRestoringSession: Boolean = true,
+    val isConversationHistoryLoading: Boolean = false
 )
 
 class OrkiViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val db = AppDatabase.getInstance(application)
-    private val dao = db.conversationDao()
+    companion object {
+        private const val STARTUP_TAG = "OrkiStartup"
+    }
+
+    // getSharedPreferences() starts its disk load without waiting for it. All preference reads are
+    // performed on Dispatchers.IO below so a slow disk cannot hold the first Compose frame.
     private val prefs = UserPreferences(application)
-    private val apiService = OrkiApiService()
 
+    private val databaseDelegate = lazy { AppDatabase.getInstance(application) }
+    private val database by databaseDelegate
+    private val dao get() = database.conversationDao()
+
+    private val apiServiceDelegate = lazy { OrkiApiService() }
+    private val apiService by apiServiceDelegate
+    private val billingManagerDelegate = lazy { PlayBillingManager(application, viewModelScope) }
+    private val billingManager by billingManagerDelegate
+    private val imageService by lazy { ImageGenerationService(application) }
+
+    // AudioManager is cheap to construct; its disk cache is itself lazy (see AudioManager).
     val audioManager = AudioManager(application, viewModelScope)
-    val billingManager = PlayBillingManager(application, viewModelScope)
-    val imageService by lazy { ImageGenerationService(application) }
-    val videoService by lazy { VideoGenerationService(application) }
 
-    private val activeUserEmailFlow = MutableStateFlow(if (prefs.isLoggedIn) prefs.userEmail.ifBlank { "" } else "")
+    private val optionalServicesStarted = AtomicBoolean(false)
+    private val activeUserEmailFlow = MutableStateFlow("")
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val conversations: StateFlow<List<ConversationEntity>> = activeUserEmailFlow
         .flatMapLatest { email ->
             if (email.isBlank()) {
-                flowOf(emptyList()) // Guests or logged out users do not see previous user chats
+                flowOf(emptyList()) // Guests or logged out users do not see previous user chats.
             } else {
-                dao.getConversationsForUser(email)
+                // Creating/opening Room and obtaining the initial rows are never startup-main-thread work.
+                flow { emitAll(dao.getConversationsForUser(email)) }
+                    .flowOn(Dispatchers.IO)
+                    .onStart {
+                        _uiState.value = _uiState.value.copy(isConversationHistoryLoading = true)
+                    }
+                    .onEach {
+                        _uiState.value = _uiState.value.copy(isConversationHistoryLoading = false)
+                    }
+                    .catch { error ->
+                        Log.e(STARTUP_TAG, "Conversation history initialization failed", error)
+                        _uiState.value = _uiState.value.copy(
+                            isConversationHistoryLoading = false,
+                            errorMessage = "Chat history could not be loaded. You can still start a new chat."
+                        )
+                        emit(emptyList())
+                    }
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -113,26 +154,9 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
     val audioPlayerState: StateFlow<AudioPlayerState> = audioManager.playerState
     val amplitudeFlow: StateFlow<Float> = audioManager.amplitudeFlow
 
-    private val _uiState = MutableStateFlow(
-        UiState(
-            script = prefs.script,
-            uiLanguage = prefs.uiLanguage,
-            userName = if (prefs.isLoggedIn) prefs.userName.ifBlank { "User" } else "Guest",
-            userPersona = prefs.userPersona,
-            currentPlan = if (prefs.isLoggedIn) prefs.currentPlan else "Guest",
-            dailyUsage = prefs.getDailyUsage(if (prefs.isLoggedIn) prefs.userEmail else ""),
-            dailyLimit = prefs.getDailyLimit(if (prefs.isLoggedIn) prefs.currentPlan else "Guest"),
-            dailyUploadUsage = prefs.getDailyUploadUsage(if (prefs.isLoggedIn) prefs.userEmail else ""),
-            dailyUploadLimit = prefs.getDailyUploadLimit(if (prefs.isLoggedIn) prefs.currentPlan else "Guest"),
-            selectedModel = prefs.selectedModel,
-            selectedVoice = prefs.selectedVoice,
-            isIncognito = prefs.isIncognito,
-            isLoggedIn = prefs.isLoggedIn,
-            isEmailVerified = prefs.isEmailVerified,
-            authMethod = if (prefs.isLoggedIn) prefs.authMethod else "Guest",
-            userEmail = if (prefs.isLoggedIn) prefs.userEmail else ""
-        )
-    )
+    // A usable Guest state is available synchronously. Saved account/settings data replaces only
+    // the preference-backed fields as soon as its background read completes.
+    private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
     private var activeStreamJob: Job? = null
@@ -142,27 +166,123 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
     private val incognitoMessages = mutableListOf<ChatMessageEntity>()
 
     init {
-        // Asynchronously initialize nonessential services off the critical UI startup path
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            delay(3000)
-            apiService.warmUpEdgeFunctions()
-        }
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            delay(1500)
-            billingManager.startConnection()
-        }
+        val restoreStartedAtMs = SystemClock.elapsedRealtime()
         viewModelScope.launch {
-            billingManager.purchasedPlan.collect { plan ->
-                if (plan != null) {
-                    upgradePlan(plan)
+            try {
+                val restored = withContext(Dispatchers.IO) { readSavedUiState() }
+                applyRestoredUiState(restored)
+                activeUserEmailFlow.value = restored.userEmail
+                Log.i(
+                    STARTUP_TAG,
+                    "saved_state_restored_ms=${SystemClock.elapsedRealtime() - restoreStartedAtMs}"
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                Log.e(STARTUP_TAG, "Saved state initialization failed; continuing with defaults", error)
+                _uiState.value = _uiState.value.copy(
+                    isRestoringSession = false,
+                    errorMessage = "Some saved settings could not be restored. Orki is ready with defaults."
+                )
+            }
+        }
+    }
+
+    /**
+     * Called by MainActivity after the first frame is drawn. There is no timer or artificial delay:
+     * optional network/Billing setup simply cannot compete with the first visible frame.
+     */
+    fun onFirstFrameDrawn() {
+        startOptionalServicesIfNeeded()
+    }
+
+    private fun startOptionalServicesIfNeeded() {
+        if (!optionalServicesStarted.compareAndSet(false, true)) return
+
+        viewModelScope.launch {
+            try {
+                val manager = withContext(Dispatchers.IO) {
+                    billingManager.also { it.startConnection() }
                 }
+                launch {
+                    manager.purchasedPlan.collect { plan ->
+                        if (plan != null) upgradePlan(plan)
+                    }
+                }
+                launch {
+                    manager.billingMessage.collect { message ->
+                        _uiState.value = _uiState.value.copy(errorMessage = message)
+                    }
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                // Billing is optional at launch. Keep chat usable and retry when purchase is opened.
+                optionalServicesStarted.set(false)
+                Log.e(STARTUP_TAG, "Optional Billing initialization failed", error)
             }
         }
-        viewModelScope.launch {
-            billingManager.billingMessage.collect { msg ->
-                _uiState.value = _uiState.value.copy(errorMessage = msg)
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                apiService.warmUpEdgeFunctions()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                // Warm-up is best effort; actual requests retain their normal error handling.
+                Log.w(STARTUP_TAG, "Optional AI endpoint warm-up failed", error)
             }
         }
+    }
+
+    private fun readSavedUiState(): UiState {
+        val loggedIn = prefs.isLoggedIn
+        val email = if (loggedIn) prefs.userEmail else ""
+        val plan = if (loggedIn) prefs.currentPlan else "Guest"
+        return UiState(
+            script = prefs.script,
+            uiLanguage = prefs.uiLanguage,
+            userName = if (loggedIn) prefs.userName.ifBlank { "User" } else "Guest",
+            userPersona = prefs.userPersona,
+            currentPlan = plan,
+            dailyUsage = prefs.getDailyUsage(email),
+            dailyLimit = prefs.getDailyLimit(plan),
+            dailyUploadUsage = prefs.getDailyUploadUsage(email),
+            dailyUploadLimit = prefs.getDailyUploadLimit(plan),
+            selectedModel = prefs.selectedModel,
+            selectedVoice = prefs.selectedVoice,
+            isIncognito = prefs.isIncognito,
+            isLoggedIn = loggedIn,
+            isEmailVerified = loggedIn && prefs.isEmailVerified,
+            authMethod = if (loggedIn) prefs.authMethod else "Guest",
+            userEmail = email,
+            isRestoringSession = false
+        )
+    }
+
+    private fun applyRestoredUiState(restored: UiState) {
+        // Preserve any transient interaction that happened during the very short background restore.
+        val current = _uiState.value
+        _uiState.value = current.copy(
+            script = restored.script,
+            uiLanguage = restored.uiLanguage,
+            userName = restored.userName,
+            userPersona = restored.userPersona,
+            currentPlan = restored.currentPlan,
+            dailyUsage = restored.dailyUsage,
+            dailyLimit = restored.dailyLimit,
+            dailyUploadUsage = restored.dailyUploadUsage,
+            dailyUploadLimit = restored.dailyUploadLimit,
+            selectedModel = restored.selectedModel,
+            selectedVoice = restored.selectedVoice,
+            isIncognito = restored.isIncognito,
+            isLoggedIn = restored.isLoggedIn,
+            isEmailVerified = restored.isEmailVerified,
+            authMethod = restored.authMethod,
+            userEmail = restored.userEmail,
+            isRestoringSession = false,
+            isConversationHistoryLoading = restored.userEmail.isNotBlank()
+        )
     }
 
     fun startNewChat() {
@@ -272,6 +392,7 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun launchPlayBillingFlow(activity: Activity, plan: String, cycle: String) {
+        startOptionalServicesIfNeeded()
         billingManager.launchPurchaseFlow(activity, plan, cycle)
     }
 
@@ -310,7 +431,8 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             dailyUploadUsage = uploadUsage,
             currentConversationId = null,
             messages = emptyList(),
-            currentStreamingResponse = ""
+            currentStreamingResponse = "",
+            isConversationHistoryLoading = true
         )
     }
 
@@ -345,7 +467,8 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             dailyUploadUsage = 0,
             currentConversationId = null,
             messages = emptyList(),
-            currentStreamingResponse = ""
+            currentStreamingResponse = "",
+            isConversationHistoryLoading = false
         )
     }
 
@@ -1280,6 +1403,8 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         super.onCleared()
         audioManager.destroy()
-        billingManager.destroy()
+        if (billingManagerDelegate.isInitialized()) {
+            billingManager.destroy()
+        }
     }
 }

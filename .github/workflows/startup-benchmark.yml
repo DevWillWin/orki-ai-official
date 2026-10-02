@@ -1,0 +1,95 @@
+name: Measure Android startup
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  startup-benchmark:
+    name: Startup benchmark (API 35)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout optimized branch
+        uses: actions/checkout@v4
+
+      - name: Set up Java (JDK 21)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.3.1"
+
+      - name: Setup build inputs
+        run: |
+          cp .env.example .env
+          keytool -genkeypair -v -keystore debug.keystore \
+            -storepass android -keypass android -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Build optimized APK
+        run: gradle assembleDebug --stacktrace
+
+      - name: Download historical APKs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p benchmark-apks/original benchmark-apks/partial
+          gh run download 36855794807 -R DevWillWin/orki-ai-official -n OrkiAI-debug-apk -D benchmark-apks/original
+          gh run download 36890794759 -R DevWillWin/orki-ai-official -n OrkiAI-debug-apk -D benchmark-apks/partial
+          find benchmark-apks app/build/outputs/apk/debug -name '*.apk' -ls
+
+      - name: Enable KVM access
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Measure time to first visible frame
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            chmod +x scripts/ci-startup-benchmark.sh
+            original="$(find benchmark-apks/original -name '*.apk' | head -1)"
+            partial="$(find benchmark-apks/partial -name '*.apk' | head -1)"
+            optimized="$(find app/build/outputs/apk/debug -name '*.apk' | head -1)"
+            scripts/ci-startup-benchmark.sh \
+              original-98883d6 "$original" \
+              partial-b741330 "$partial" \
+              optimized-head "$optimized"
+
+      - name: Publish result summary
+        if: always()
+        run: |
+          if [[ -f startup-results.csv ]]; then
+            echo '## Android cold-process startup (API 35 emulator)' >> "$GITHUB_STEP_SUMMARY"
+            echo '' >> "$GITHUB_STEP_SUMMARY"
+            echo '```csv' >> "$GITHUB_STEP_SUMMARY"
+            cat startup-results.csv >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload startup measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: startup-results
+          path: startup-results.csv
+          if-no-files-found: warn

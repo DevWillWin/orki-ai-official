@@ -69,6 +69,7 @@ jobs:
       - name: Measure time to first visible frame
         run: |
           set -euo pipefail
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
           "$ANDROID_HOME/emulator/emulator" -avd startup-benchmark \
             -no-window -noaudio -no-boot-anim -no-snapshot-save \
             -gpu swiftshader_indirect > emulator.log 2>&1 &

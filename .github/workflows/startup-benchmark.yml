@@ -60,11 +60,15 @@ jobs:
 
       - name: Create API 29 emulator
         run: |
+          export ANDROID_AVD_HOME="$RUNNER_TEMP/android-avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             "platform-tools" "emulator" "system-images;android-29;default;x86_64" >/dev/null
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
             --force --name startup-benchmark \
             --package "system-images;android-29;default;x86_64"
+          "$ANDROID_HOME/emulator/emulator" -list-avds
 
       - name: Measure time to first visible frame
         run: |

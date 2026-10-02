@@ -76,7 +76,17 @@ jobs:
           emulator_pid=$!
           trap 'kill "$emulator_pid" 2>/dev/null || true' EXIT
 
-          adb wait-for-device
+          sleep 5
+          if ! kill -0 "$emulator_pid" 2>/dev/null; then
+            echo "Emulator exited before connecting to adb"
+            cat emulator.log
+            exit 1
+          fi
+          if ! timeout 120 adb wait-for-device; then
+            echo "Timed out waiting for emulator"
+            cat emulator.log
+            exit 1
+          fi
           booted=""
           for attempt in $(seq 1 120); do
             if [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
@@ -119,16 +129,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [[ -f startup-results.csv ]]; then
-            {
-              echo '### Startup benchmark result'
-              echo
+          {
+            echo '### Startup benchmark result'
+            echo
+            if [[ -s startup-results.csv ]]; then
               echo '```csv'
               cat startup-results.csv
               echo '```'
-            } > /tmp/startup-comment.md
-            gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/startup-comment.md
-          fi
+            elif [[ -f emulator.log ]]; then
+              echo 'The emulator failed before measurement:'
+              echo '```text'
+              tail -80 emulator.log
+              echo '```'
+            else
+              echo 'Measurement failed before producing diagnostics.'
+            fi
+          } > /tmp/startup-comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/startup-comment.md
 
       - name: Upload startup measurements
         if: always()

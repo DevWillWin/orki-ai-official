@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -74,6 +75,7 @@ fun DrawerContent(
     userEmail: String = "",
     userName: String = "Guest",
     conversations: List<ConversationEntity>,
+    isConversationHistoryLoading: Boolean = false,
     selectedConversationId: String?,
     onSelectConversation: (String) -> Unit,
     onDeleteConversation: (String) -> Unit,
@@ -258,6 +260,26 @@ fun DrawerContent(
                         text = "Incognito Active: Session history is not stored.",
                         fontSize = 12.sp,
                         color = PurpleIncognito
+                    )
+                }
+            } else if (isConversationHistoryLoading) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 28.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = ForestGreenPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Loading recent chats…",
+                        fontSize = 12.sp,
+                        color = SlateTextSecondary
                     )
                 }
             } else if (conversations.isEmpty()) {

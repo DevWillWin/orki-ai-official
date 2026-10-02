@@ -61,8 +61,8 @@ jobs:
       - name: Measure time to first visible frame
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
-          target: google_apis
+          api-level: 29
+          target: default
           arch: x86_64
           disable-animations: true
           script: |

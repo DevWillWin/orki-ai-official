@@ -58,22 +58,49 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      - name: Create API 29 emulator
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" "emulator" "system-images;android-29;default;x86_64" >/dev/null
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
+            --force --name startup-benchmark \
+            --package "system-images;android-29;default;x86_64"
+
       - name: Measure time to first visible frame
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 29
-          target: default
-          arch: x86_64
-          disable-animations: true
-          script: |
-            chmod +x scripts/ci-startup-benchmark.sh
-            original="$(find benchmark-apks/original -name '*.apk' | head -1)"
-            partial="$(find benchmark-apks/partial -name '*.apk' | head -1)"
-            optimized="$(find app/build/outputs/apk/debug -name '*.apk' | head -1)"
-            scripts/ci-startup-benchmark.sh \
-              original-98883d6 "$original" \
-              partial-b741330 "$partial" \
-              optimized-head "$optimized"
+        run: |
+          set -euo pipefail
+          "$ANDROID_HOME/emulator/emulator" -avd startup-benchmark \
+            -no-window -noaudio -no-boot-anim -no-snapshot-save \
+            -gpu swiftshader_indirect > emulator.log 2>&1 &
+          emulator_pid=$!
+          trap 'kill "$emulator_pid" 2>/dev/null || true' EXIT
+
+          adb wait-for-device
+          booted=""
+          for attempt in $(seq 1 120); do
+            if [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
+              booted=true
+              break
+            fi
+            sleep 2
+          done
+          if [[ -z "$booted" ]]; then
+            cat emulator.log
+            exit 1
+          fi
+
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+
+          chmod +x scripts/ci-startup-benchmark.sh
+          original="$(find benchmark-apks/original -name '*.apk' | head -1)"
+          partial="$(find benchmark-apks/partial -name '*.apk' | head -1)"
+          optimized="$(find app/build/outputs/apk/debug -name '*.apk' | head -1)"
+          scripts/ci-startup-benchmark.sh \
+            original-98883d6 "$original" \
+            partial-b741330 "$partial" \
+            optimized-head "$optimized"
 
       - name: Publish result summary
         if: always()

@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   actions: read
+  pull-requests: write
 
 jobs:
   startup-benchmark:
@@ -60,11 +61,10 @@ jobs:
       - name: Measure time to first visible frame
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 34
+          target: google_apis
           arch: x86_64
-          profile: pixel_6
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
             chmod +x scripts/ci-startup-benchmark.sh
             original="$(find benchmark-apks/original -name '*.apk' | head -1)"
@@ -84,6 +84,22 @@ jobs:
             echo '```csv' >> "$GITHUB_STEP_SUMMARY"
             cat startup-results.csv >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Publish measurements to pull request
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ -f startup-results.csv ]]; then
+            {
+              echo '### Startup benchmark result'
+              echo
+              echo '```csv'
+              cat startup-results.csv
+              echo '```'
+            } > /tmp/startup-comment.md
+            gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/startup-comment.md
           fi
 
       - name: Upload startup measurements

@@ -631,7 +631,7 @@ fun MainChatScreen(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
-                                        text = "Perchance AI & Cloudflare • Type prompt below",
+                                        text = "Orki Image Studio (Flux / Turbo) • Type prompt below",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = SlateTextSecondary
                                     )

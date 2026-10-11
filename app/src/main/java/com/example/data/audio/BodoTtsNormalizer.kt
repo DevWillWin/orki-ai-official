@@ -92,12 +92,31 @@ object BodoTtsNormalizer {
         "aphw" to "आफा",
         "fwrwng" to "फोरों",
         "phwrwng" to "फोरों",
+        "solong" to "सोलों",
         "mithi" to "मिथि",
         "mithiyw" to "मिथियो",
         "mithigo" to "मिथियो",
         "sanse" to "सानसे",
         "boraibai" to "बरायबाय",
-        "bwraibai" to "बरायबाय"
+        "bwraibai" to "बरायबाय",
+        // Common Animals & Everyday Vocabulary
+        "swima" to "सैमा",
+        "suima" to "सैमा",
+        "saima" to "सैमा",
+        "mousi" to "मावजि",
+        "maosi" to "मावजि",
+        "maoji" to "मावजि",
+        "mwsou" to "मसौ",
+        "mosou" to "मसौ",
+        "mousou" to "मसौ",
+        "mwisw" to "मैस'",
+        "maisu" to "मैस'",
+        "oma" to "अमा",
+        "dao" to "दाव",
+        "na" to "ना",
+        "dwi" to "दै",
+        "nokhor" to "नखर",
+        "hagra" to "हाग्रा"
     )
 
     // English loanwords transliterated into phonetic Devanagari so Indic TTS models pronounce them naturally

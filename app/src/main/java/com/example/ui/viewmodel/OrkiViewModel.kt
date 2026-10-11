@@ -790,7 +790,7 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
                         _uiState.value = _uiState.value.copy(
                             imageGenStage = stageText,
                             isImageGenFallback = isFallback,
-                            imageGenEngine = if (isFallback) "Orki Fallback Engine" else if (prefs.imageEnginePreference == "azure_dalle") "Azure OpenAI (DALL-E 3)" else "Perchance AI (Primary Free)"
+                            imageGenEngine = if (isFallback) "Orki Fallback Engine" else if (prefs.imageEnginePreference == "cloudflare") "Cloudflare Workers AI" else "Orki Image Studio (Flux)"
                         )
                     }
                 )
@@ -1032,6 +1032,16 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
                 "\n[LIVE VOICE MODE: You are conversing in a live audio call. Keep your answer strictly to 1 or 2 ultra-concise, natural spoken sentences in Bodo. No lists, no bullets, no markdown.]"
             } else ""
 
+            val bodoKnowledgeBase = "\n[Bodo Language & Vocabulary Knowledge Base:\n" +
+                "You are Orki, an authentic conversational AI fluent in Bodo (बर' राव). Accurately understand both colloquial Roman Bodo and standard Bodo Devanagari:\n" +
+                "- 'swima' (also written 'suima', 'saima' / सैमा) = DOG.\n" +
+                "- 'mousi' (also written 'maosi', 'maoji' / मावजि, मावसि) = CAT. (CRITICAL: Do NOT confuse with Hindi 'mousi/mausi' which means maternal aunt; in Bodo, 'mousi'/'maosi' refers to cat / मावजि).\n" +
+                "- 'mwsou' / 'mosou' (मसौ) = COW / cattle; 'mwisw' / 'maisu' (मैस') = BUFFALO; 'oma' (अमा) = PIG; 'dao' (दाव) = BIRD / CHICKEN; 'na' (ना) = FISH.\n" +
+                "- 'dwi' (दै) = water, 'onkham' / 'wngkham' (ओंखाम) = cooked rice / meal, 'nokhor' (नखर) = family / household, 'hagra' (हाग्रा) = jungle / forest, 'fwrwng' / 'solong' = teach / learn.\n" +
+                "- Always interpret colloquial Roman Bodo naturally and correctly, respecting authentic Bodo definitions and culture.]"
+
+            val fullConstraints = "$scriptConstraint$bodoKnowledgeBase$livePromptConstraint"
+
             val memoryDepth = when (_uiState.value.currentPlan) {
                 "Guest" -> 4
                 "Free" -> 6
@@ -1057,7 +1067,7 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
                         })
                     }
                     parts.put(audioObj)
-                    val promptText = "1. Transcribe accurately.\n2. Formulate conversational reply as Orki.\nConstraint: $scriptConstraint$livePromptConstraint\n\nOutput MUST strictly follow:\nTRANSCRIPTION: <exact words>\nRESPONSE: <reply>"
+                    val promptText = "1. Transcribe accurately.\n2. Formulate conversational reply as Orki.\nConstraint: $fullConstraints\n\nOutput MUST strictly follow:\nTRANSCRIPTION: <exact words>\nRESPONSE: <reply>"
                     parts.put(JSONObject().apply { put("text", promptText) })
                 } else if (isLastMsg && attachmentPayload != null) {
                     if ((attachmentPayload.fileType == "image" || attachmentPayload.fileType == "pdf") && attachmentPayload.base64Data != null) {
@@ -1068,19 +1078,19 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
                             })
                         }
                         parts.put(fileObj)
-                        val promptText = "Attached file: ${attachmentPayload.name} (${attachmentPayload.fileType.uppercase()})\n${msg.text}" + scriptConstraint + livePromptConstraint
+                        val promptText = "Attached file: ${attachmentPayload.name} (${attachmentPayload.fileType.uppercase()})\n${msg.text}" + fullConstraints
                         parts.put(JSONObject().apply { put("text", promptText) })
                     } else if (attachmentPayload.fileType == "txt") {
                         val promptText = "[Document: ${attachmentPayload.name}]\n" +
                                 (attachmentPayload.textContent ?: "") +
-                                "\n[End of Document]\n\n" + msg.text + scriptConstraint + livePromptConstraint
+                                "\n[End of Document]\n\n" + msg.text + fullConstraints
                         parts.put(JSONObject().apply { put("text", promptText) })
                     } else {
-                        parts.put(JSONObject().apply { put("text", msg.text + scriptConstraint + livePromptConstraint) })
+                        parts.put(JSONObject().apply { put("text", msg.text + fullConstraints) })
                     }
                 } else {
                     val textWithConstraint = if (isLastMsg && msg.role == "user") {
-                        msg.text + scriptConstraint + livePromptConstraint
+                        msg.text + fullConstraints
                     } else {
                         msg.text
                     }

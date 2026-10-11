@@ -103,7 +103,6 @@ fun SettingsDialog(
     val context = LocalContext.current
     val prefs = remember { UserPreferences(context) }
     var imageEngine by remember { mutableStateOf(prefs.imageEnginePreference) }
-    var dalleDeployment by remember { mutableStateOf(prefs.azureDalleDeployment) }
     var ttsSpeed by remember { mutableFloatStateOf(prefs.ttsSpeed) }
     var cacheResetMessage by remember { mutableStateOf<String?>(null) }
 
@@ -563,13 +562,13 @@ fun SettingsDialog(
                     // SECTION 4: AI IMAGE GENERATION ENGINE
                     SettingsSection(title = "AI IMAGE GENERATION ENGINE") {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            // Option 1: Perchance AI (Primary Default)
-                            val isPerchanceSelected = imageEngine == "auto" || imageEngine == "perchance"
+                            // Option 1: Orki Image Studio (Flux / Turbo)
+                            val isFastStudioSelected = imageEngine == "auto" || imageEngine == "perchance" || imageEngine == "pollinations"
                             EngineOptionRow(
-                                title = "Perchance AI",
+                                title = "Orki Image Studio (Flux / Turbo)",
                                 badgeText = "PRIMARY • UNLIMITED FREE",
-                                description = "Runs in background with automatic warm-up & zero quota limits",
-                                isSelected = isPerchanceSelected,
+                                description = "Ultra-fast high-definition 1024x1024 generation with zero wait and no quota limits",
+                                isSelected = isFastStudioSelected,
                                 onClick = { imageEngine = "auto" }
                             )
 
@@ -577,92 +576,13 @@ fun SettingsDialog(
                             val isCfSelected = imageEngine == "cloudflare"
                             EngineOptionRow(
                                 title = "Cloudflare Workers AI",
-                                badgeText = "2ND FALLBACK",
-                                description = "Fast SDXL/Flux via orki-img-gen worker",
+                                badgeText = "CUSTOM WORKER",
+                                description = "Fast SDXL/Flux via orki-img-gen worker endpoint",
                                 isSelected = isCfSelected,
                                 onClick = { imageEngine = "cloudflare" }
                             )
 
-                            // Option 3: Azure OpenAI DALL-E 3
-                            val isDalleSelected = imageEngine == "azure_dalle"
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(if (isDalleSelected) PaleSage else PureWhite)
-                                    .border(
-                                        width = if (isDalleSelected) 1.5.dp else 1.dp,
-                                        color = if (isDalleSelected) ForestGreenPrimary else WarmBorder,
-                                        shape = RoundedCornerShape(10.dp)
-                                    )
-                                    .clickable { imageEngine = "azure_dalle" }
-                                    .padding(10.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(18.dp)
-                                            .clip(CircleShape)
-                                            .border(
-                                                width = if (isDalleSelected) 5.dp else 1.5.dp,
-                                                color = if (isDalleSelected) ForestGreenPrimary else SlateTextSecondary,
-                                                shape = CircleShape
-                                            )
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text("Azure OpenAI DALL-E 3", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = CharcoalTextPrimary)
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(4.dp))
-                                                    .background(PaleSage)
-                                                    .border(1.dp, SageGreen, RoundedCornerShape(4.dp))
-                                                    .padding(horizontal = 5.dp, vertical = 1.dp)
-                                            ) {
-                                                Text("CUSTOM • $0.04/img", fontSize = 9.sp, color = ForestGreenPrimary, fontWeight = FontWeight.SemiBold)
-                                            }
-                                        }
-                                        Text("Ultra-photorealistic 1024x1024 synthesis via Azure key", fontSize = 11.sp, color = SlateTextSecondary)
-                                    }
-                                    if (isDalleSelected) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = "Selected",
-                                            tint = ForestGreenPrimary,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
-
-                                if (isDalleSelected) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
-                                        value = dalleDeployment,
-                                        onValueChange = { dalleDeployment = it },
-                                        label = { Text("Azure DALL-E Deployment Name", fontSize = 11.sp) },
-                                        singleLine = true,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = ForestGreenPrimary,
-                                            unfocusedBorderColor = WarmBorder,
-                                            focusedTextColor = CharcoalTextPrimary,
-                                            unfocusedTextColor = CharcoalTextPrimary,
-                                            cursorColor = ForestGreenPrimary,
-                                            focusedLabelColor = ForestGreenPrimary,
-                                            focusedContainerColor = PureWhite,
-                                            unfocusedContainerColor = PureWhite
-                                        ),
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                }
-                            }
-
-                            // Emergency Backup Status Pill
+                            // Multi-Engine Routing Status Pill
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -680,8 +600,8 @@ fun SettingsDialog(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
-                                    Text("Emergency Backup: Pollinations.AI", fontWeight = FontWeight.SemiBold, fontSize = 11.sp, color = CharcoalTextPrimary)
-                                    Text("Active Fallback • Ensures 100% uptime if all other engines fail", fontSize = 10.sp, color = SlateTextSecondary)
+                                    Text("Automatic High-Speed Routing", fontWeight = FontWeight.SemiBold, fontSize = 11.sp, color = CharcoalTextPrimary)
+                                    Text("Instant 2–4s generation with automatic seamless failover protection", fontSize = 10.sp, color = SlateTextSecondary)
                                 }
                             }
                         }
@@ -792,7 +712,6 @@ fun SettingsDialog(
                         Button(
                             onClick = {
                                 prefs.imageEnginePreference = imageEngine
-                                prefs.azureDalleDeployment = dalleDeployment.trim().ifEmpty { "dall-e-3" }
                                 prefs.ttsSpeed = ttsSpeed
                                 onSave(script, uiLang, name.trim(), persona.trim(), voice)
                                 onDismiss()

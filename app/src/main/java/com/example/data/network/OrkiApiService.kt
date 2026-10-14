@@ -50,6 +50,21 @@ class OrkiApiService {
             )
         }
 
+        /** Gemini may split one event into multiple text parts; ignore internal thought parts. */
+        fun streamChunks(jsonStr: String): List<String> {
+            if (jsonStr.isBlank() || jsonStr == "[DONE]") return emptyList()
+            val parsed = JSONObject(jsonStr)
+            parsed.optJSONObject("error")?.let { error ->
+                throw IllegalStateException(error.optString("message", "Upstream stream error"))
+            }
+            val parts = parsed.optJSONArray("candidates")?.optJSONObject(0)
+                ?.optJSONObject("content")?.optJSONArray("parts") ?: return emptyList()
+            return (0 until parts.length()).mapNotNull { index ->
+                val part = parts.optJSONObject(index) ?: return@mapNotNull null
+                if (part.optBoolean("thought", false)) null else part.optString("text", "").takeIf { it.isNotEmpty() }
+            }
+        }
+
         fun ensureDevanagariForTTS(text: String): String {
             return BodoTtsNormalizer.normalizeForTts(text)
         }
@@ -88,43 +103,31 @@ class OrkiApiService {
         val call = client.newCall(request)
 
         try {
-            val response = call.execute()
-            if (!response.isSuccessful) {
-                val errorBody = response.body?.string() ?: "HTTP ${response.code}"
-                close(Exception("Server returned ${response.code}: $errorBody"))
-                return@callbackFlow
-            }
-
-            val body = response.body
-            if (body == null) {
-                close(Exception("Empty response body"))
-                return@callbackFlow
-            }
-
-            val reader = BufferedReader(InputStreamReader(body.byteStream()))
-            var line: String? = reader.readLine()
-            while (line != null) {
-                val trimmed = line.trim()
-                if (trimmed.startsWith("data: ")) {
-                    val jsonStr = trimmed.substring(6).trim()
-                    if (jsonStr.isNotEmpty()) {
-                        try {
-                            val parsed = JSONObject(jsonStr)
-                            val candidates = parsed.optJSONArray("candidates")
-                            if (candidates != null && candidates.length() > 0) {
-                                val content = candidates.getJSONObject(0).optJSONObject("content")
-                                val parts = content?.optJSONArray("parts")
-                                if (parts != null && parts.length() > 0) {
-                                    val chunk = parts.getJSONObject(0).optString("text", "")
-                                    if (chunk.isNotEmpty()) {
-                                        trySend(chunk)
-                                    }
-                                }
+            call.execute().use { response ->
+                if (!response.isSuccessful) {
+                    val errorBody = response.body?.string() ?: "HTTP ${response.code}"
+                    close(Exception("Server returned ${response.code}: $errorBody"))
+                    return@callbackFlow
+                }
+                val body = response.body
+                if (body == null) {
+                    close(Exception("Empty response body"))
+                    return@callbackFlow
+                }
+                BufferedReader(InputStreamReader(body.byteStream())).use { reader ->
+                    var line = reader.readLine()
+                    while (line != null) {
+                        val trimmed = line.trim()
+                        if (trimmed.startsWith("data:")) {
+                            try {
+                                streamChunks(trimmed.substring(5).trim()).forEach { trySend(it) }
+                            } catch (_: org.json.JSONException) {
+                                // Ignore non-JSON heartbeat frames, not explicit upstream errors.
                             }
-                        } catch (_: Exception) {}
+                        }
+                        line = reader.readLine()
                     }
                 }
-                line = reader.readLine()
             }
             close()
         } catch (e: Exception) {
@@ -192,89 +195,27 @@ class OrkiApiService {
         } catch (_: Exception) {}
     }
 
-    /**
-     * Gemini Middleman Prompt Enhancer:
-     * Transforms basic or ambiguous prompts into rich, visually descriptive, culturally accurate prompts.
-     * Prevents image/video models from hallucinating on cultural attire (e.g. Dokhona, Aronai, Fasra)
-     * and adds cinematic lighting, camera perspective, textures, and framing.
-     */
-    suspend fun enhanceVisualPrompt(rawPrompt: String, isVideo: Boolean): String = withContext(Dispatchers.IO) {
+    /** Uses the dedicated visual route; chat personas must never enhance an image prompt. */
+    suspend fun enhanceVisualPrompt(rawPrompt: String, isVideo: Boolean, script: String = "roman"): String = withContext(Dispatchers.IO) {
         val trimmed = rawPrompt.trim()
         if (trimmed.isEmpty()) return@withContext trimmed
-
         try {
-            val systemInstruction = if (isVideo) {
-                "You are an expert AI video prompt engineer. Enhance the user's video prompt into a rich, photorealistic, cinematic visual description for an 8-second video. CRITICAL: Always output in English only, because video diffusion models require English. If cultural attire (such as Bodo traditional 'dokhona', 'aronai', 'fasra', cultural festivals, or scenery) is mentioned, translate and describe authentic visual details, fabrics, handwoven motifs, and vibrant colors (yellow, green, red) accurately so the generator does not hallucinate. Specify camera motion (smooth cinematic pan/zoom, 4k detail, atmospheric lighting). Keep it concise, under 60 words. Return ONLY the enhanced prompt in English, no quotes or preamble."
-            } else {
-                "You are an expert AI image prompt engineer. Enhance the user's image prompt into a rich, photorealistic, visually precise description. CRITICAL: Always output in English only, because image diffusion models require English. If cultural attire (such as Bodo traditional 'dokhona', 'aronai', 'fasra', cultural festivals, or scenery) is mentioned, translate and describe authentic visual details, fabrics, handwoven Agor motifs, and vibrant colors (yellow, green, red) accurately so the diffusion model does not hallucinate. Include camera lighting, framing, 8k resolution, photorealistic masterpiece details. Keep it concise, under 60 words. Return ONLY the enhanced prompt in English, no quotes or preamble."
-            }
-
-            val contents = JSONArray().apply {
-                put(JSONObject().apply {
-                    put("role", "user")
-                    put("parts", JSONArray().apply {
-                        put(JSONObject().apply {
-                            put("text", "$systemInstruction\n\nUser request: \"$trimmed\"\n\nEnhanced prompt:")
-                        })
-                    })
-                })
-            }
-
-            val payload = JSONObject().apply {
-                put("plan", "Pro")
-                put("model", "gemini-2.0-flash")
-                put("script", "Latin")
-                put("userPersona", "")
-                put("contents", contents)
-                put("isLiveMode", false)
-                put("generationConfig", JSONObject().apply {
-                    put("temperature", 0.3)
-                    put("maxOutputTokens", 180)
-                })
-            }
-
             val request = Request.Builder()
                 .url(STREAM_API_URL)
-                .post(payload.toString().toRequestBody(jsonMediaType))
+                .post(VisualPromptProtocol.request(trimmed, isVideo, script).toString().toRequestBody(jsonMediaType))
                 .build()
-
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) return@withContext trimmed
-
-            val body = response.body ?: return@withContext trimmed
-            val reader = BufferedReader(InputStreamReader(body.byteStream()))
-            val enhancedBuilder = StringBuilder()
-
-            var line: String? = reader.readLine()
-            while (line != null) {
-                val lineTrimmed = line.trim()
-                if (lineTrimmed.startsWith("data: ")) {
-                    val jsonStr = lineTrimmed.substring(6).trim()
-                    if (jsonStr.isNotEmpty()) {
-                        try {
-                            val parsed = JSONObject(jsonStr)
-                            val candidates = parsed.optJSONArray("candidates")
-                            if (candidates != null && candidates.length() > 0) {
-                                val content = candidates.getJSONObject(0).optJSONObject("content")
-                                val parts = content?.optJSONArray("parts")
-                                if (parts != null && parts.length() > 0) {
-                                    val chunk = parts.getJSONObject(0).optString("text", "")
-                                    enhancedBuilder.append(chunk)
-                                }
-                            }
-                        } catch (_: Exception) {}
-                    }
-                }
-                line = reader.readLine()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@withContext trimmed
+                val body = response.body?.string() ?: return@withContext trimmed
+                VisualPromptProtocol.parse(body, trimmed)
             }
-
-            val finalEnhanced = enhancedBuilder.toString()
-                .replace(Regex("^(Enhanced prompt|Prompt):?\\s*", RegexOption.IGNORE_CASE), "")
-                .replace(Regex("^\"|\"$"), "")
-                .trim()
-
-            if (finalEnhanced.isNotBlank()) finalEnhanced else trimmed
-        } catch (e: Exception) {
+        } catch (e: VisualPromptClarificationException) {
+            // The caller must show this question and stop, not render an invented subject.
+            throw e
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // Old deployments, network or malformed output: preserve the original request.
             trimmed
         }
     }

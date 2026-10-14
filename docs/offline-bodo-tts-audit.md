@@ -1,0 +1,40 @@
+# Offline Bodo TTS compatibility audit — 2026-10-13
+
+## Decision
+
+**Do not integrate an offline runtime in this change.** `ai4bharat/vits_rasa_13` is a plausible candidate, not proven unsuitable. There is now model-specific upstream sherpa-onnx evidence, but no model/tokenizer/ONNX artifact was obtained or executed here, and no Bodo device/audio test was possible. Existing remote synthesis, caching, voice selection, previews, speed/pitch and live-talk playback remain in place.
+
+The earlier `config.pad_token_id = 0` workaround plus an undefined `tokenizer` failure is not inference proof. A padding ID does not establish the model's tokenizer/vocabulary, blank insertion, speaker/style conditioning or waveform generation. Without the original traceback/source, the undefined variable cannot be attributed definitively to caller code versus custom model code.
+
+## Evidence inspected
+
+1. **Model-specific upstream runtime support:** [sherpa-onnx PR #3849](https://github.com/k2-fsa/sherpa-onnx/pull/3849), merged 2026-08-08 at `634265c9b57642fdd158120148785c89aa281c4b`, explicitly references `ai4bharat/vits_rasa_13` and an ONNX export at `MatiasLin/sherpa-onnx-vits-rasa-13`. It documents the previous `Missing Input: emotion_id` error, optional seventh input and the requirement for `num_emotions > 0` metadata plus an `emotion_id` graph input. This is substantially stronger evidence than “sherpa supports VITS.” It demonstrates the CLI/C++ route, not Orki Android integration or Bodo quality.
+2. **Architecture/library/license/language metadata, secondary mirror:** [GitHub HF metadata mirror](https://github.com/0xSero/hf-model-benchmarks/blob/056ca18b649468d9721d080bd80049cdbecec542/models/ai4bharat__vits_rasa_13--081820.html) reports Transformers custom code, `indic_vits_model`, safetensors, CC-BY-4.0 and tags `as bn brx doi kn mai ml mr ne pa sa ta te`. Treat this as secondary metadata, not authoritative permission to ship weights.
+3. **Third-party Python notebook:** [vits_rasa_13.ipynb](https://github.com/JayGang07/Indian-TTS-models/blob/87dd558dde5c679e4396e32ac2a8d9d1491eff28/models/vits-rasa/notebooks/vits_rasa_13.ipynb) uses `AutoTokenizer` and `AutoModel` with `trust_remote_code=True`, input IDs, speaker/style parameters and waveform output. Its inspected cells contained no successful execution output. It is an example, not a verified pipeline; do not execute remote code blindly.
+4. **Third-party Android evidence:** [QIDK TTS report](https://github.com/DevangBordoloi/QIDK-Megathon/blob/943f7f99a58ceeb8e846fe92e2e5334cfcb4fe19/code/reporter-app/doc/TTS.md) reports sherpa 1.13.8 JNI use of a Rasa export, BRX_F=4 / BRX_M=5, 24 kHz from ONNX metadata, speaker/style IDs, int8 vs fp32 device tests. It explicitly says audio was not listened to; Bodo is not one of its reported primary speech test clips. Another [Android implementation](https://github.com/prasadxa/itantra/blob/37cfc4f93c215c32420b23bc8d2b7a719a2570ec/tts/src/main/kotlin/org/itantra/tts/engine/VitsTtsEngine.kt) describes 22050 Hz, illustrating why these values must be read from the exact artifact, not copied. Speaker IDs 4/5 and CONV style 4 are leads to verify, **not Orki constants to ship**.
+5. **Not the same model:** [AI4Bharat Indic-TTS README](https://github.com/ai4bharat/Indic-TTS) describes FastPitch + HiFi-GAN and provides a `brx.zip` release asset of 1,522,282,712 bytes. Its [inference language table](https://github.com/ai4bharat/Indic-TTS/blob/master/inference/README.md) lists Boro/Devanagari with female voice. That project cannot establish Rasa's architecture, language/speaker inventory or weight license. Its MIT code license is not a substitute for Rasa's weight license. The release archive was not downloaded and is not an Android inference size estimate.
+
+The environment only permits GitHub/npm/PyPI hosts; Hugging Face, model downloads from that host, EC2 and speech endpoints were unavailable. No tokenizer configuration, vocabulary, full model config, weight checksum, graph input/output list or audio has been verified directly for this candidate.
+
+## What must match before Android integration
+
+- Pin the upstream and export revisions, record artifact checksums and verify the model card/license/attribution and redistribution/download terms. Review custom Python model/tokenizer code before running it.
+- Establish exact VITS architecture, tokenizer symbols/IDs, padding/blank behavior, normalization, and supported Unicode text. Do not assume the current heuristic Orki transliterator is the Rasa frontend.
+- Obtain a desktop Bodo waveform from the **documented** speaker and style IDs, model-derived sample rate and verified input. Listen with native speakers. Save input, IDs, config revision and audio for comparison.
+- For ONNX, inspect inputs/types/dynamic lengths, outputs and metadata. The conventional runtime inputs are `x`, `x_length`, `noise_scale`, `length_scale`, `noise_scale_w`, `sid`; a multi-emotion export adds `emotion_id` and matching metadata. Alternatively bake a **verified** neutral style into the export. This does not eliminate tokenizer/frontend verification.
+- Compare Python and ONNX audio across short/long Bodo sentences and multiple input lengths. Do not trust a third-party tracing wrapper that converts tensor controls to Python floats, guesses missing speaker IDs as zero, or exports only one tested length.
+- Verify the selected sherpa Android JNI version/ABI/API supports this exact graph and conditioning; run a standalone device spike before wiring it to Orki. Test native callback shape, cancellation, background execution, memory release and sample-rate handling.
+
+## Resource evidence and acceptance gates
+
+There are **no Orki measurements** of model load, RAM, APK/download size, latency, RTF, thermal behavior or battery use. The QIDK report describes approximately 123 MB fp32 versus 40 MB int8 files, int8 RTF around 1.0 and fp32 around 0.48 with four threads on a Snapdragon 8 Elite. These are secondary, high-end-device results; int8 was slower there. Do not promise comparable performance on a low-cost Bodo user's phone or infer peak RAM from file size.
+
+Measure cold/warm load, peak RSS, real-time factor, first-audio delay, sustained speech, cancellation, battery/thermal impact, and APK/native library overhead on a representative lower-memory arm64 device and the app's API range (minSdk 24). Require native-speaker judgments of intelligibility and pronunciation in addition to non-silent PCM/ASR round trips.
+
+## Orki preservation and next feasible step
+
+`AudioManager.kt` keeps MediaPlayer playback, lazy persistent WAV cache, in-memory URL cache, recording/silence detection and bundled offline preview clips. `UserPreferences.kt` keeps Mainao/Birphung selection and speed/pitch. `OrkiViewModel.kt` still uses cached/remote synthesis and resumes live talk on playback completion. The archived `swift-worker` sends text/gender to the existing EC2 synthesize endpoint; it does not reveal that server's model or offer offline inference. Voice IDs sent by Android are not passed through by that archive, only gender.
+
+The useful local TTS work is preprocessing correction: mixed Roman/Devanagari text no longer aborts conversion, and valid vowel marks are no longer changed by Java word-boundary rules. JVM regression success is **not** pronunciation validation. New normalized text produces a different existing cache key; old files are preserved.
+
+Next: obtain the official/licensed candidate and exact ONNX export in an unrestricted desktop environment, verify Bodo IDs/tokenizer/sample rate, perform the Python→ONNX comparison, then an isolated Android benchmark. If it passes, introduce an optional lazy runtime behind the existing synthesis/cache/playback interface; do not replace working network fallback or claim the offline voices are identical to Mainao/Birphung. If it fails, record the exact incompatible operator/frontend/quality/resource issue and evaluate a Bodo-specific export or a smaller Bodo checkpoint with the same acceptance tests.

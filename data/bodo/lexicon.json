@@ -1,0 +1,734 @@
+{
+  "schemaVersion": 1,
+  "version": "2026-10-13.1",
+  "entries": [
+    {
+      "id": "dog",
+      "canonical": "swima",
+      "canonicalScript": "roman",
+      "roman": [
+        "swima",
+        "suima",
+        "saima"
+      ],
+      "devanagari": [
+        "सैमा"
+      ],
+      "meanings": [
+        "dog"
+      ],
+      "partOfSpeech": "noun",
+      "domain": "animals",
+      "meaningStatus": "user_confirmed",
+      "formStatus": "provisional",
+      "sources": [
+        "user: overnight audit request"
+      ],
+      "examples": [],
+      "notes": "User audit request confirms swima/suima = dog; Devanagari and saima inherited, not independently verified."
+    },
+    {
+      "id": "cat",
+      "canonical": "mousi",
+      "canonicalScript": "roman",
+      "roman": [
+        "mousi",
+        "maosi",
+        "maoji",
+        "mouzi"
+      ],
+      "devanagari": [
+        "मावजि",
+        "मावसि"
+      ],
+      "meanings": [
+        "cat"
+      ],
+      "partOfSpeech": "noun",
+      "domain": "animals",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Bodo context required; mousi can resemble Hindi kinship terms. mouzi inherited from edge enhancer."
+    },
+    {
+      "id": "cow",
+      "canonical": "mwsou",
+      "canonicalScript": "roman",
+      "roman": [
+        "mwsou",
+        "mosou",
+        "mousou"
+      ],
+      "devanagari": [
+        "मसौ"
+      ],
+      "meanings": [
+        "cow / cattle"
+      ],
+      "partOfSpeech": "noun",
+      "domain": "animals",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Do not merge with buffalo. Edge mousho is omitted: equivalence unverified."
+    },
+    {
+      "id": "buffalo",
+      "canonical": "mwisw",
+      "canonicalScript": "roman",
+      "roman": [
+        "mwisw",
+        "maisu"
+      ],
+      "devanagari": [
+        "मैस'"
+      ],
+      "meanings": [
+        "buffalo"
+      ],
+      "partOfSpeech": "noun",
+      "domain": "animals",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": ""
+    },
+    {
+      "id": "pig",
+      "canonical": "oma",
+      "canonicalScript": "roman",
+      "roman": [
+        "oma"
+      ],
+      "devanagari": [
+        "अमा"
+      ],
+      "meanings": [
+        "pig"
+      ],
+      "partOfSpeech": "noun",
+      "domain": "animals",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Also a word/name outside Bodo; context matters."
+    },
+    {
+      "id": "bird",
+      "canonical": "dao",
+      "canonicalScript": "roman",
+      "roman": [
+        "dao"
+      ],
+      "devanagari": [
+        "दाव"
+      ],
+      "meanings": [
+        "bird / chicken"
+      ],
+      "partOfSpeech": "noun",
+      "domain": "animals",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Bird versus chicken requires context."
+    },
+    {
+      "id": "fish",
+      "canonical": "na",
+      "canonicalScript": "roman",
+      "roman": [
+        "na"
+      ],
+      "devanagari": [
+        "ना"
+      ],
+      "meanings": [
+        "fish"
+      ],
+      "partOfSpeech": "noun",
+      "domain": "animals",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Short ambiguous token; never infer Bodo from na alone."
+    },
+    {
+      "id": "water",
+      "canonical": "dwi",
+      "canonicalScript": "roman",
+      "roman": [
+        "dwi"
+      ],
+      "devanagari": [
+        "दै"
+      ],
+      "meanings": [
+        "water"
+      ],
+      "partOfSpeech": "noun",
+      "domain": "image",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Water is not automatically a river."
+    },
+    {
+      "id": "forest",
+      "canonical": "hagra",
+      "canonicalScript": "roman",
+      "roman": [
+        "hagra",
+        "hagrama"
+      ],
+      "devanagari": [
+        "हाग्रा"
+      ],
+      "meanings": [
+        "forest / jungle"
+      ],
+      "partOfSpeech": "noun",
+      "domain": "image",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "hagrama inherited from edge prompt; morphology not analyzed."
+    },
+    {
+      "id": "rice",
+      "canonical": "onkham",
+      "canonicalScript": "roman",
+      "roman": [
+        "onkham",
+        "wngkham"
+      ],
+      "devanagari": [
+        "ओंखाम"
+      ],
+      "meanings": [
+        "cooked rice / meal"
+      ],
+      "partOfSpeech": "noun",
+      "domain": "everyday",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": ""
+    },
+    {
+      "id": "household",
+      "canonical": "nokhor",
+      "canonicalScript": "roman",
+      "roman": [
+        "nokhor"
+      ],
+      "devanagari": [
+        "नखर"
+      ],
+      "meanings": [
+        "family / household"
+      ],
+      "partOfSpeech": "noun",
+      "domain": "everyday",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": ""
+    },
+    {
+      "id": "teach",
+      "canonical": "fwrwng",
+      "canonicalScript": "roman",
+      "roman": [
+        "fwrwng",
+        "phwrwng"
+      ],
+      "devanagari": [
+        "फोरों"
+      ],
+      "meanings": [
+        "teach"
+      ],
+      "partOfSpeech": "verb",
+      "domain": "verbs",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": ""
+    },
+    {
+      "id": "learn",
+      "canonical": "solong",
+      "canonicalScript": "roman",
+      "roman": [
+        "solong"
+      ],
+      "devanagari": [
+        "सोलों"
+      ],
+      "meanings": [
+        "learn"
+      ],
+      "partOfSpeech": "verb",
+      "domain": "verbs",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": ""
+    },
+    {
+      "id": "i",
+      "canonical": "ang",
+      "canonicalScript": "roman",
+      "roman": [
+        "ang"
+      ],
+      "devanagari": [
+        "आं"
+      ],
+      "meanings": [
+        "I"
+      ],
+      "partOfSpeech": "pronoun",
+      "domain": "pronouns",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": ""
+    },
+    {
+      "id": "you",
+      "canonical": "nwng",
+      "canonicalScript": "roman",
+      "roman": [
+        "nwng"
+      ],
+      "devanagari": [
+        "नों"
+      ],
+      "meanings": [
+        "you"
+      ],
+      "partOfSpeech": "pronoun",
+      "domain": "pronouns",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": ""
+    },
+    {
+      "id": "what",
+      "canonical": "ma",
+      "canonicalScript": "roman",
+      "roman": [
+        "ma"
+      ],
+      "devanagari": [
+        "मा"
+      ],
+      "meanings": [
+        "what"
+      ],
+      "partOfSpeech": "question",
+      "domain": "questions",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Short token; requires Bodo context."
+    },
+    {
+      "id": "who",
+      "canonical": "swr",
+      "canonicalScript": "roman",
+      "roman": [
+        "swr"
+      ],
+      "devanagari": [
+        "सोर"
+      ],
+      "meanings": [
+        "who"
+      ],
+      "partOfSpeech": "question",
+      "domain": "questions",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": ""
+    },
+    {
+      "id": "absent",
+      "canonical": "gwiya",
+      "canonicalScript": "roman",
+      "roman": [
+        "gwiya",
+        "gaiya"
+      ],
+      "devanagari": [
+        "गैया"
+      ],
+      "meanings": [
+        "not present / absent"
+      ],
+      "partOfSpeech": "negation",
+      "domain": "negation",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Inherited form; scope of negation requires sentence context."
+    },
+    {
+      "id": "greeting",
+      "canonical": "khulumbai",
+      "canonicalScript": "roman",
+      "roman": [
+        "khulumbai"
+      ],
+      "devanagari": [
+        "खुलुमबाय"
+      ],
+      "meanings": [
+        "greeting"
+      ],
+      "partOfSpeech": "expression",
+      "domain": "conversation",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Do not infer a full sentence translation from a single gloss."
+    },
+    {
+      "id": "thanks",
+      "canonical": "sabaykhar",
+      "canonicalScript": "roman",
+      "roman": [
+        "sabaykhar"
+      ],
+      "devanagari": [
+        "साबायखर"
+      ],
+      "meanings": [
+        "thanks"
+      ],
+      "partOfSpeech": "expression",
+      "domain": "conversation",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Inherited TTS English thanks mapping."
+    },
+    {
+      "id": "good",
+      "canonical": "mwjang",
+      "canonicalScript": "roman",
+      "roman": [
+        "mwjang",
+        "mwzang"
+      ],
+      "devanagari": [
+        "मोजां"
+      ],
+      "meanings": [
+        "good"
+      ],
+      "partOfSpeech": "adjective",
+      "domain": "conversation",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Inherited prompt examples."
+    },
+    {
+      "id": "number-1",
+      "canonical": "से",
+      "canonicalScript": "devanagari",
+      "roman": [],
+      "devanagari": [
+        "से"
+      ],
+      "meanings": [
+        "one"
+      ],
+      "partOfSpeech": "numeral",
+      "domain": "numbers",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Devanagari form inherited from BodoTtsNormalizer; Roman form intentionally absent."
+    },
+    {
+      "id": "number-2",
+      "canonical": "नै",
+      "canonicalScript": "devanagari",
+      "roman": [],
+      "devanagari": [
+        "नै"
+      ],
+      "meanings": [
+        "two"
+      ],
+      "partOfSpeech": "numeral",
+      "domain": "numbers",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Devanagari form inherited from BodoTtsNormalizer; Roman form intentionally absent."
+    },
+    {
+      "id": "number-3",
+      "canonical": "थाम",
+      "canonicalScript": "devanagari",
+      "roman": [],
+      "devanagari": [
+        "थाम"
+      ],
+      "meanings": [
+        "three"
+      ],
+      "partOfSpeech": "numeral",
+      "domain": "numbers",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Devanagari form inherited from BodoTtsNormalizer; Roman form intentionally absent."
+    },
+    {
+      "id": "number-4",
+      "canonical": "ब्रै",
+      "canonicalScript": "devanagari",
+      "roman": [],
+      "devanagari": [
+        "ब्रै"
+      ],
+      "meanings": [
+        "four"
+      ],
+      "partOfSpeech": "numeral",
+      "domain": "numbers",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Devanagari form inherited from BodoTtsNormalizer; Roman form intentionally absent."
+    },
+    {
+      "id": "number-5",
+      "canonical": "बा",
+      "canonicalScript": "devanagari",
+      "roman": [],
+      "devanagari": [
+        "बा"
+      ],
+      "meanings": [
+        "five"
+      ],
+      "partOfSpeech": "numeral",
+      "domain": "numbers",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Devanagari form inherited from BodoTtsNormalizer; Roman form intentionally absent."
+    },
+    {
+      "id": "number-6",
+      "canonical": "द'",
+      "canonicalScript": "devanagari",
+      "roman": [],
+      "devanagari": [
+        "द'"
+      ],
+      "meanings": [
+        "six"
+      ],
+      "partOfSpeech": "numeral",
+      "domain": "numbers",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Devanagari form inherited from BodoTtsNormalizer; Roman form intentionally absent."
+    },
+    {
+      "id": "number-7",
+      "canonical": "स्नि",
+      "canonicalScript": "devanagari",
+      "roman": [],
+      "devanagari": [
+        "स्नि"
+      ],
+      "meanings": [
+        "seven"
+      ],
+      "partOfSpeech": "numeral",
+      "domain": "numbers",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Devanagari form inherited from BodoTtsNormalizer; Roman form intentionally absent."
+    },
+    {
+      "id": "number-8",
+      "canonical": "दान्थि",
+      "canonicalScript": "devanagari",
+      "roman": [],
+      "devanagari": [
+        "दान्थि"
+      ],
+      "meanings": [
+        "eight"
+      ],
+      "partOfSpeech": "numeral",
+      "domain": "numbers",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Devanagari form inherited from BodoTtsNormalizer; Roman form intentionally absent."
+    },
+    {
+      "id": "number-9",
+      "canonical": "गु",
+      "canonicalScript": "devanagari",
+      "roman": [],
+      "devanagari": [
+        "गु"
+      ],
+      "meanings": [
+        "nine"
+      ],
+      "partOfSpeech": "numeral",
+      "domain": "numbers",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Devanagari form inherited from BodoTtsNormalizer; Roman form intentionally absent."
+    },
+    {
+      "id": "number-10",
+      "canonical": "जि",
+      "canonicalScript": "devanagari",
+      "roman": [],
+      "devanagari": [
+        "जि"
+      ],
+      "meanings": [
+        "ten"
+      ],
+      "partOfSpeech": "numeral",
+      "domain": "numbers",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:OrkiViewModel.kt / BodoTtsNormalizer.kt / quick-processor ZIP"
+      ],
+      "examples": [],
+      "notes": "Devanagari form inherited from BodoTtsNormalizer; Roman form intentionally absent."
+    },
+    {
+      "id": "horse",
+      "canonical": "gorai",
+      "canonicalScript": "roman",
+      "roman": [
+        "gorai"
+      ],
+      "devanagari": [],
+      "meanings": [
+        "horse"
+      ],
+      "partOfSpeech": "noun",
+      "domain": "animals",
+      "meaningStatus": "provisional",
+      "formStatus": "provisional",
+      "sources": [
+        "repository:11218b9:quick-processor (1).zip:source/index.ts:IMAGE_ENHANCEMENT_PROMPT"
+      ],
+      "examples": [],
+      "notes": "Roman form inherited from edge enhancer. No Devanagari form was available; do not invent one."
+    }
+  ]
+}

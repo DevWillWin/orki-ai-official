@@ -56,7 +56,12 @@ android {
     compose = true
     buildConfig = true
   }
-  testOptions { unitTests { isIncludeAndroidResources = true } }
+  testOptions {
+    unitTests {
+      isIncludeAndroidResources = true
+      isReturnDefaultValues = true
+    }
+  }
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
@@ -114,6 +119,8 @@ dependencies {
   // implementation(libs.play.services.location)
   implementation(libs.play.billing)
   implementation(libs.retrofit)
+  implementation(libs.onnxruntime.android)
+  testImplementation(libs.onnxruntime.jvm)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)

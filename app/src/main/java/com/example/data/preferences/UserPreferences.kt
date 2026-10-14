@@ -139,6 +139,10 @@ class UserPreferences(context: Context) {
         get() = prefs.getFloat("arki_tts_pitch", 1.0f)
         set(value) = prefs.edit().putFloat("arki_tts_pitch", value).apply()
 
+    var ttsEngineMode: String
+        get() = prefs.getString("arki_tts_engine_mode", "auto") ?: "auto"
+        set(value) = prefs.edit().putString("arki_tts_engine_mode", value).apply()
+
     var hasExplicitlyLoggedIn: Boolean
         get() = prefs.getBoolean("has_explicitly_logged_in", false)
         set(value) = prefs.edit().putBoolean("has_explicitly_logged_in", value).apply()

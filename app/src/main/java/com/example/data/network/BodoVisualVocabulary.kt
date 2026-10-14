@@ -145,6 +145,14 @@ object BodoVisualVocabulary {
         return buildDeterministicPrompt(resolvedText, null, resolvedText, isVideo)
     }
 
+    private fun safeLogW(tag: String, message: String) {
+        try {
+            Log.w(tag, message)
+        } catch (_: Throwable) {
+            println("[$tag] $message")
+        }
+    }
+
     /**
      * Validates that an enhanced prompt received from AI is a valid English visual prompt
      * and preserves the intended subject.
@@ -158,7 +166,7 @@ object BodoVisualVocabulary {
 
         // 1. Must NOT contain Devanagari script (\u0900-\u097F)
         if (trimmed.any { it in '\u0900'..'\u097F' }) {
-            Log.w(TAG, "Validation failed: candidate contains Devanagari characters: $trimmed")
+            safeLogW(TAG, "Validation failed: candidate contains Devanagari characters: $trimmed")
             return false
         }
 
@@ -171,7 +179,7 @@ object BodoVisualVocabulary {
             "ang boro", "swngnai"
         )
         if (conversationalMarkers.any { lower.contains(it) } || trimmed.endsWith("?")) {
-            Log.w(TAG, "Validation failed: candidate is conversational text: $trimmed")
+            safeLogW(TAG, "Validation failed: candidate is conversational text: $trimmed")
             return false
         }
 
@@ -182,12 +190,12 @@ object BodoVisualVocabulary {
             if (termRegex.containsMatchIn(originalLower)) {
                 val hasExpectedSubject = requiredKeywords.any { lower.contains(it) }
                 if (!hasExpectedSubject) {
-                    Log.w(TAG, "Validation failed: original request was for '$term', but enhanced prompt did not contain any of $requiredKeywords. Prompt: $trimmed")
+                    safeLogW(TAG, "Validation failed: original request was for '$term', but enhanced prompt did not contain any of $requiredKeywords. Prompt: $trimmed")
                     return false
                 }
                 // Specific check: if subject was swima (dog), forbid "swim", "swimming", "swimmer"
                 if ((term == "swima" || term == "suima") && !lower.contains("dog") && (lower.contains("swim") || lower.contains("pool"))) {
-                    Log.w(TAG, "Validation failed: 'swima' falsely translated to swimming: $trimmed")
+                    safeLogW(TAG, "Validation failed: 'swima' falsely translated to swimming: $trimmed")
                     return false
                 }
             }

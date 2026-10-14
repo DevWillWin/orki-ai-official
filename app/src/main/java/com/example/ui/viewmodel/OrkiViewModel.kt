@@ -95,7 +95,12 @@ data class UiState(
     val triggerUpgradeDialog: Boolean = false,
     val triggerLoginDialog: Boolean = false,
     val isRestoringSession: Boolean = true,
-    val isConversationHistoryLoading: Boolean = false
+    val isConversationHistoryLoading: Boolean = false,
+    val ttsEngineMode: String = "auto",
+    val isVoicePackInstalled: Boolean = false,
+    val isDownloadingVoicePack: Boolean = false,
+    val voicePackDownloadProgress: Float = 0f,
+    val voicePackStatusMessage: String = ""
 )
 
 class OrkiViewModel(application: Application) : AndroidViewModel(application) {
@@ -120,6 +125,9 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
 
     // AudioManager is cheap to construct; its disk cache is itself lazy (see AudioManager).
     val audioManager = AudioManager(application, viewModelScope)
+
+    val voicePackManager by lazy { com.example.data.audio.BodoVoicePackManager(application) }
+    private var neuralEngine: com.example.data.audio.BodoNeuralTtsEngine? = null
 
     private val optionalServicesStarted = AtomicBoolean(false)
     private val activeUserEmailFlow = MutableStateFlow("")
@@ -256,7 +264,15 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             isEmailVerified = loggedIn && prefs.isEmailVerified,
             authMethod = if (loggedIn) prefs.authMethod else "Guest",
             userEmail = email,
-            isRestoringSession = false
+            isRestoringSession = false,
+            ttsEngineMode = prefs.ttsEngineMode,
+            isVoicePackInstalled = voicePackManager.isVoicePackInstalled() || run {
+                val rootModel = java.io.File("/app/applet/model.onnx")
+                val rootTokens = java.io.File("/app/applet/tokens.txt")
+                if (rootModel.exists() && rootTokens.exists()) {
+                    voicePackManager.installFromLocalFiles(rootModel, rootTokens)
+                } else false
+            }
         )
     }
 
@@ -281,7 +297,9 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             authMethod = restored.authMethod,
             userEmail = restored.userEmail,
             isRestoringSession = false,
-            isConversationHistoryLoading = restored.userEmail.isNotBlank()
+            isConversationHistoryLoading = restored.userEmail.isNotBlank(),
+            ttsEngineMode = restored.ttsEngineMode,
+            isVoicePackInstalled = restored.isVoicePackInstalled
         )
     }
 
@@ -1272,11 +1290,56 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun playTts(text: String) {
+    private fun getOrInitNeuralEngine(): com.example.data.audio.BodoNeuralTtsEngine? {
+        if (!voicePackManager.isVoicePackInstalled()) return null
+        if (neuralEngine == null) {
+            val engine = com.example.data.audio.BodoNeuralTtsEngine(voicePackManager.modelFile, voicePackManager.tokensFile)
+            if (engine.initialize()) {
+                neuralEngine = engine
+            }
+        }
+        return neuralEngine
+    }
+
+    fun setTtsEngineMode(mode: String) {
+        prefs.ttsEngineMode = mode
+        _uiState.value = _uiState.value.copy(ttsEngineMode = mode)
+    }
+
+    fun downloadVoicePack() {
+        if (_uiState.value.isDownloadingVoicePack) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isDownloadingVoicePack = true,
+                voicePackDownloadProgress = 0f,
+                voicePackStatusMessage = "Starting download..."
+            )
+            val res = voicePackManager.downloadVoicePack { progress, status ->
+                _uiState.value = _uiState.value.copy(
+                    voicePackDownloadProgress = progress,
+                    voicePackStatusMessage = status
+                )
+            }
+            res.onSuccess {
+                _uiState.value = _uiState.value.copy(
+                    isDownloadingVoicePack = false,
+                    isVoicePackInstalled = true,
+                    voicePackDownloadProgress = 1f,
+                    voicePackStatusMessage = "Verified voice pack installed!"
+                )
+            }.onFailure { err ->
+                _uiState.value = _uiState.value.copy(
+                    isDownloadingVoicePack = false,
+                    voicePackStatusMessage = "Download failed: ${err.message}"
+                )
+            }
+        }
+    }
+
+    fun playTts(text: String, voice: String = _uiState.value.selectedVoice) {
         val clean = OrkiApiService.cleanTextForTTS(text)
         if (clean.isEmpty()) return
 
-        val voice = _uiState.value.selectedVoice
         val profile = VoiceOptions.get(voice)
         val speed = prefs.ttsSpeed
         val pitch = prefs.ttsPitch
@@ -1307,11 +1370,65 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
+        val mode = prefs.ttsEngineMode // "auto", "offline", "online"
+        val useOffline = when (mode) {
+            "offline" -> true
+            "auto" -> voicePackManager.isVoicePackInstalled()
+            else -> false
+        }
+
+        if (useOffline) {
+            if (!voicePackManager.isVoicePackInstalled()) {
+                if (mode == "offline") {
+                    // Strictly offline mode: NEVER call AWS silently!
+                    audioManager.stopPlayback()
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = "Offline voice pack is not installed. Download it in Settings to enable offline Bodo speech."
+                    )
+                    return
+                }
+                // In auto mode, fallback to online below
+            } else {
+                viewModelScope.launch {
+                    audioManager.setPlayerLoading(text)
+                    try {
+                        val engine = getOrInitNeuralEngine()
+                        if (engine != null) {
+                            val outFile = java.io.File(getApplication<Application>().cacheDir, "tts_neural_${voice}_${clean.hashCode()}.wav")
+                            val res = engine.synthesizeToWav(clean, voice, speed, outFile)
+                            res.onSuccess { wavPath ->
+                                audioManager.ttsUrlCache[cacheKey] = wavPath
+                                audioManager.playAudioUrl(
+                                    url = wavPath,
+                                    ttsText = text,
+                                    pitch = pitch,
+                                    speed = speed
+                                )
+                            }.onFailure { err ->
+                                audioManager.stopPlayback()
+                                _uiState.value = _uiState.value.copy(
+                                    errorMessage = "Offline TTS error: ${err.message}"
+                                )
+                            }
+                            return@launch
+                        }
+                    } catch (e: Exception) {
+                        audioManager.stopPlayback()
+                        _uiState.value = _uiState.value.copy(
+                            errorMessage = "Neural TTS error: ${e.message}"
+                        )
+                        return@launch
+                    }
+                }
+                return
+            }
+        }
+
+        // Online synthesis (AWS EC2 / swift-worker endpoint)
         viewModelScope.launch {
-            audioManager.setPlayerLoading(text) // Triggers loading state in pill player
+            audioManager.setPlayerLoading(text)
             val result = apiService.fetchTtsAudioUrl(clean, voice = voice)
             result.onSuccess { url ->
-                // Cache to disk and memory for instant future replays
                 val savedDiskPath = audioManager.saveTtsToDiskCache(clean, voice, url)
                 val finalPath = savedDiskPath ?: url
                 audioManager.ttsUrlCache[cacheKey] = finalPath
@@ -1398,6 +1515,65 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
+        val mode = prefs.ttsEngineMode
+        val useOffline = when (mode) {
+            "offline" -> true
+            "auto" -> voicePackManager.isVoicePackInstalled()
+            else -> false
+        }
+
+        if (useOffline) {
+            if (!voicePackManager.isVoicePackInstalled()) {
+                if (mode == "offline") {
+                    if (_uiState.value.liveTalkStatus != LiveTalkStatus.IDLE) {
+                        startVoiceRecording(liveMode = true)
+                    }
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = "Offline voice pack is not installed. Download it in Settings to enable offline Bodo speech."
+                    )
+                    return
+                }
+                // In auto mode, fallback to online below
+            } else {
+                viewModelScope.launch {
+                    try {
+                        val engine = getOrInitNeuralEngine()
+                        if (engine != null) {
+                            val outFile = java.io.File(getApplication<Application>().cacheDir, "tts_neural_live_${voice}_${clean.hashCode()}.wav")
+                            val res = engine.synthesizeToWav(clean, voice, speed, outFile)
+                            res.onSuccess { wavPath ->
+                                audioManager.ttsUrlCache[cacheKey] = wavPath
+                                if (_uiState.value.liveTalkStatus != LiveTalkStatus.IDLE) {
+                                    audioManager.playAudioUrl(
+                                        url = wavPath,
+                                        ttsText = ttsText,
+                                        pitch = pitch,
+                                        speed = speed
+                                    ) {
+                                        if (_uiState.value.liveTalkStatus != LiveTalkStatus.IDLE) {
+                                            startVoiceRecording(liveMode = true)
+                                        }
+                                    }
+                                }
+                            }.onFailure {
+                                if (_uiState.value.liveTalkStatus != LiveTalkStatus.IDLE) {
+                                    startVoiceRecording(liveMode = true)
+                                }
+                            }
+                            return@launch
+                        }
+                    } catch (_: Exception) {
+                        if (_uiState.value.liveTalkStatus != LiveTalkStatus.IDLE) {
+                            startVoiceRecording(liveMode = true)
+                        }
+                        return@launch
+                    }
+                }
+                return
+            }
+        }
+
+        // Online LiveTalk synthesis (AWS EC2 / swift-worker)
         viewModelScope.launch {
             val res = apiService.fetchTtsAudioUrl(clean, voice = voice)
             res.onSuccess { url ->
@@ -1456,5 +1632,7 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
         if (billingManagerDelegate.isInitialized()) {
             billingManager.destroy()
         }
+        neuralEngine?.close()
+        neuralEngine = null
     }
 }

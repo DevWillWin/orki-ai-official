@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.launch
 import coil.compose.AsyncImage
 import com.example.R
 import com.example.data.preferences.UserPreferences
@@ -105,6 +106,23 @@ fun SettingsDialog(
     val prefs = remember { UserPreferences(context) }
     var imageEngine by remember { mutableStateOf(prefs.imageEnginePreference) }
     var ttsSpeed by remember { mutableFloatStateOf(prefs.ttsSpeed) }
+    var ttsEngineMode by remember { mutableStateOf(prefs.ttsEngineMode) }
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+    val voicePackManager = remember { com.example.data.audio.BodoVoicePackManager(context) }
+    var isVoicePackInstalled by remember {
+        mutableStateOf(
+            voicePackManager.isVoicePackInstalled() || run {
+                val rootModel = java.io.File("/app/applet/model.onnx")
+                val rootTokens = java.io.File("/app/applet/tokens.txt")
+                if (rootModel.exists() && rootTokens.exists()) {
+                    voicePackManager.installFromLocalFiles(rootModel, rootTokens)
+                } else false
+            }
+        )
+    }
+    var isDownloadingVoicePack by remember { mutableStateOf(false) }
+    var voicePackProgress by remember { mutableFloatStateOf(0f) }
+    var voicePackStatusMessage by remember { mutableStateOf("") }
     var cacheResetMessage by remember { mutableStateOf<String?>(null) }
     var showPerchanceDebug by remember { mutableStateOf(false) }
 
@@ -319,6 +337,168 @@ fun SettingsDialog(
                                         onPreviewVoice(profile.id)
                                     }
                                 )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Speech Engine Mode Selector & Offline Voice Pack Card
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(PureWhite, RoundedCornerShape(12.dp))
+                                .border(1.dp, WarmBorder, RoundedCornerShape(12.dp))
+                                .padding(14.dp)
+                        ) {
+                            Text(
+                                text = "Speech Engine Mode",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = CharcoalTextPrimary
+                            )
+                            Text(
+                                text = "Select offline on-device synthesis or server synthesis.",
+                                fontSize = 11.sp,
+                                color = SlateTextSecondary,
+                                modifier = Modifier.padding(top = 2.dp, bottom = 8.dp)
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(
+                                    "auto" to "Automatic",
+                                    "offline" to "Offline Only",
+                                    "online" to "Online (AWS)"
+                                ).forEach { (modeVal, label) ->
+                                    val isCurrent = ttsEngineMode == modeVal
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (isCurrent) ForestGreenPrimary else PaleSage)
+                                            .border(1.dp, if (isCurrent) ForestGreenPrimary else WarmBorder, RoundedCornerShape(8.dp))
+                                            .clickable { ttsEngineMode = modeVal }
+                                            .padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isCurrent) Color.White else CharcoalTextPrimary
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Offline Voice Pack Status Subcard
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(PaleSage.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                    .border(1.dp, SageGreen.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                    .padding(10.dp)
+                            ) {
+                                Column {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Neural Model: ai4bharat/vits_rasa_13",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = ForestGreenDeep
+                                            )
+                                            Text(
+                                                text = if (isVoicePackInstalled)
+                                                    "Installed (117 MB) • 22.05 kHz Neural CPU"
+                                                else
+                                                    "Not Installed (Required for Offline Mode)",
+                                                fontSize = 10.sp,
+                                                color = if (isVoicePackInstalled) ForestGreenPrimary else SlateTextSecondary
+                                            )
+                                        }
+
+                                        if (!isVoicePackInstalled) {
+                                            if (isDownloadingVoicePack) {
+                                                Text(
+                                                    text = "${(voicePackProgress * 100).toInt()}%",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = ForestGreenPrimary
+                                                )
+                                            } else {
+                                                Button(
+                                                    onClick = {
+                                                        isDownloadingVoicePack = true
+                                                        voicePackStatusMessage = "Connecting..."
+                                                        coroutineScope.launch {
+                                                            val res = voicePackManager.downloadVoicePack { prog, msg ->
+                                                                voicePackProgress = prog
+                                                                voicePackStatusMessage = msg
+                                                            }
+                                                            isDownloadingVoicePack = false
+                                                            if (res.isSuccess) {
+                                                                isVoicePackInstalled = true
+                                                                voicePackStatusMessage = "Voice pack installed!"
+                                                            } else {
+                                                                voicePackStatusMessage = "Error: ${res.exceptionOrNull()?.message}"
+                                                            }
+                                                        }
+                                                    },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = ForestGreenPrimary),
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    modifier = Modifier.height(28.dp)
+                                                ) {
+                                                    Text("Download", fontSize = 10.sp)
+                                                }
+                                            }
+                                        } else {
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(ForestGreenPrimary.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = "READY",
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = ForestGreenPrimary
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    if (isDownloadingVoicePack) {
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        androidx.compose.material3.LinearProgressIndicator(
+                                            progress = { voicePackProgress },
+                                            modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
+                                            color = ForestGreenPrimary,
+                                            trackColor = WarmBorder
+                                        )
+                                        Text(
+                                            text = voicePackStatusMessage,
+                                            fontSize = 9.sp,
+                                            color = SlateTextSecondary,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    } else if (voicePackStatusMessage.isNotBlank()) {
+                                        Text(
+                                            text = voicePackStatusMessage,
+                                            fontSize = 9.sp,
+                                            color = ForestGreenDeep,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -751,6 +931,7 @@ fun SettingsDialog(
                             onClick = {
                                 prefs.imageEnginePreference = imageEngine
                                 prefs.ttsSpeed = ttsSpeed
+                                prefs.ttsEngineMode = ttsEngineMode
                                 onSave(script, uiLang, name.trim(), persona.trim(), voice)
                                 onDismiss()
                             },

@@ -223,13 +223,70 @@ class PerchanceImageEngine(private val context: Context) {
             settings.useWideViewPort = true
             settings.userAgentString = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36"
 
-            wv.webChromeClient = WebChromeClient()
+            wv.webChromeClient = object : WebChromeClient() {
+                override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean {
+                    if (consoleMessage != null) {
+                        val level = consoleMessage.messageLevel()
+                        val msg = consoleMessage.message()
+                        val src = "${consoleMessage.sourceId()}:${consoleMessage.lineNumber()}"
+                        when (level) {
+                            android.webkit.ConsoleMessage.MessageLevel.ERROR ->
+                                Log.e(TAG, "[JS Console ERROR] [$src] $msg")
+                            android.webkit.ConsoleMessage.MessageLevel.WARNING ->
+                                Log.w(TAG, "[JS Console WARN] [$src] $msg")
+                            else ->
+                                Log.d(TAG, "[JS Console] [$src] $msg")
+                        }
+                    }
+                    return true
+                }
+            }
             wv.webViewClient = object : WebViewClient() {
+                override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                    super.onPageStarted(view, url, favicon)
+                    Log.d(TAG, "WebView page started: $url")
+                }
+
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
-                    Log.d(TAG, "Perchance bridge page loaded")
+                    Log.d(TAG, "Perchance bridge page loaded: $url")
                     isWarmedUp = true
                     if (!webViewReady.isCompleted) webViewReady.complete(Unit)
+                }
+
+                override fun onReceivedError(
+                    view: WebView?,
+                    request: android.webkit.WebResourceRequest?,
+                    error: android.webkit.WebResourceError?
+                ) {
+                    super.onReceivedError(view, request, error)
+                    val isMain = request?.isForMainFrame == true
+                    val reqUrl = request?.url?.toString() ?: ""
+                    val errCode = error?.errorCode ?: 0
+                    val desc = error?.description?.toString() ?: "Unknown error"
+                    Log.e(TAG, "[DNS/Network Error] [MainFrame=$isMain, Code=$errCode] $desc (URL: $reqUrl)")
+                }
+
+                override fun onReceivedHttpError(
+                    view: WebView?,
+                    request: android.webkit.WebResourceRequest?,
+                    errorResponse: android.webkit.WebResourceResponse?
+                ) {
+                    super.onReceivedHttpError(view, request, errorResponse)
+                    val isMain = request?.isForMainFrame == true
+                    val reqUrl = request?.url?.toString() ?: ""
+                    val statusCode = errorResponse?.statusCode ?: 0
+                    val reason = errorResponse?.reasonPhrase ?: ""
+                    Log.e(TAG, "[HTTP Error] [MainFrame=$isMain] HTTP $statusCode $reason (URL: $reqUrl)")
+                }
+
+                override fun onReceivedSslError(
+                    view: WebView?,
+                    handler: android.webkit.SslErrorHandler?,
+                    error: android.net.http.SslError?
+                ) {
+                    Log.e(TAG, "[SSL Error] Primary error ${error?.primaryError} on ${error?.url}")
+                    super.onReceivedSslError(view, handler, error)
                 }
             }
 

@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Explore
@@ -114,6 +115,7 @@ import com.example.ui.components.ImageGenProgressCard
 import com.example.ui.components.SlashCommandsPopup
 import com.example.ui.components.LiveTalkOverlay
 import com.example.ui.components.LoginDialog
+import com.example.ui.components.PerchanceDebugDialog
 import com.example.ui.components.SettingsDialog
 import com.example.ui.components.UpgradeDialog
 import com.example.ui.components.bounceClick
@@ -175,6 +177,7 @@ fun MainChatScreen(
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showUpgradeDialog by remember { mutableStateOf(false) }
     var showLoginDialog by remember { mutableStateOf(false) }
+    var showPerchanceDebug by remember { mutableStateOf(false) }
     var activeGenMode by remember { mutableStateOf(com.example.ui.components.ActiveGenerationMode.NONE) }
     var showModelDropdown by remember { mutableStateOf(false) }
     var showAttachMenu by remember { mutableStateOf(false) }
@@ -470,6 +473,24 @@ fun MainChatScreen(
                                     )
                                 }
                             }
+                        }
+
+                        // Perchance WebView Debugger Icon Button
+                        IconButton(
+                            onClick = { showPerchanceDebug = true },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(DarkSurfaceVariant)
+                                .border(1.dp, DarkSurfaceBorder, RoundedCornerShape(12.dp))
+                                .bounceClick()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.BugReport,
+                                contentDescription = "Perchance WebView Debugger",
+                                tint = TextMuted,
+                                modifier = Modifier.size(19.dp)
+                            )
                         }
 
                         // New Chat Button (ChatGPT/Claude top-right icon)
@@ -1129,6 +1150,13 @@ fun MainChatScreen(
             },
             onDismiss = { showAttachMenu = false },
             onUpgradeClick = { showUpgradeDialog = true }
+        )
+    }
+
+    // Perchance Live WebView Debug Screen
+    if (showPerchanceDebug) {
+        PerchanceDebugDialog(
+            onDismiss = { showPerchanceDebug = false }
         )
     }
 }

@@ -637,10 +637,39 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // 4. Bodo Language Triggers
-        if (lower.contains("छबि बानाय") || lower.contains("बानाय छबि")) {
-            val clean = t.replace(Regex("छबि|बानाय"), "").trim()
+        // 4. Bodo Language Triggers (Devanagari & Romanized)
+        // Devanagari: "छबि बानाय", "बानाय छबि", "फोटो बानाय", "नुथाइ दिन्थि", "सैमानि छबि बानाय"
+        if (lower.contains("छबि") || lower.contains("फोटो") || lower.contains("फट'") || lower.contains("नुथाइ")) {
+            val clean = t.replace(Regex("छबि|फोटो|फट'|नुथाइ|बानाय|दिन्थि|हर|हरो|मोनसे|मासे|सानसे|नि"), " ")
+                .replace(Regex("\\s+"), " ")
+                .trim()
             if (clean.isNotEmpty()) return VisualIntent("image", clean)
+        }
+
+        // Romanized Bodo: e.g. "chobi banay", "photo banay", "swimani chobi banay", "mase swimani photo", "chobi banna hordo", "chobi dakhaw"
+        val romanizedBodoPrefixRegex = Regex(
+            "^(?:angno\\s+)?(?:chobi|photo|fotho|nuthai)\\s+(?:banay|bana|banna|banna\\s+hordo|dakhaw|dekhao|dinthi|hor|hordo)\\s*(.+)?$",
+            RegexOption.IGNORE_CASE
+        )
+        val romMatch = romanizedBodoPrefixRegex.find(t)
+        if (romMatch != null) {
+            val trailing = romMatch.groupValues[1].trim()
+            val clean = if (trailing.isNotEmpty()) trailing else t.replace(Regex("(?i)chobi|photo|fotho|nuthai|banay|bana|banna|hordo|dakhaw|dekhao|dinthi|hor|angno"), "").trim()
+            if (clean.isNotEmpty()) return VisualIntent("image", clean)
+        }
+
+        val romanizedBodoSuffixRegex = Regex(
+            "^(.+?)\\s*(?:ni\\s+)?(?:chobi|photo|fotho|nuthai)\\s*(?:banay|bana|banna|banna\\s+hordo|dakhaw|dekhao|dinthi|hor|hordo)?$",
+            RegexOption.IGNORE_CASE
+        )
+        val suffixMatch = romanizedBodoSuffixRegex.find(t)
+        if (suffixMatch != null && (lower.contains("chobi") || lower.contains("photo") || lower.contains("fotho") || lower.contains("nuthai"))) {
+            val subjectCandidate = suffixMatch.groupValues[1].trim()
+                .replace(Regex("(?i)^(?:angno\\s+|please\\s+|hey\\s+orki\\s*,?\\s*)"), "")
+                .trim()
+            if (subjectCandidate.isNotEmpty() && subjectCandidate.length >= 2) {
+                return VisualIntent("image", subjectCandidate)
+            }
         }
 
         return null
@@ -740,9 +769,20 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             )
 
             val enhancedPrompt = try {
-                apiService.enhanceVisualPrompt(trimmed, isVideo = false)
-            } catch (_: Exception) {
-                trimmed
+                val candidate = apiService.enhanceVisualPrompt(trimmed, isVideo = false)
+                if (com.example.data.network.BodoVisualVocabulary.validateEnhancedPrompt(trimmed, candidate)) {
+                    candidate
+                } else {
+                    com.example.data.network.BodoVisualVocabulary.resolveBodoToEnglishVisual(trimmed, isVideo = false)
+                }
+            } catch (e: Exception) {
+                com.example.data.network.BodoVisualVocabulary.resolveBodoToEnglishVisual(trimmed, isVideo = false)
+            }
+
+            val finalPrompt = if (com.example.data.network.BodoVisualVocabulary.validateEnhancedPrompt(trimmed, enhancedPrompt)) {
+                enhancedPrompt
+            } else {
+                com.example.data.network.BodoVisualVocabulary.resolveBodoToEnglishVisual(trimmed, isVideo = false)
             }
 
             _uiState.value = _uiState.value.copy(
@@ -778,7 +818,7 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
 
             try {
                 val result = imageService.generateImage(
-                    prompt = enhancedPrompt,
+                    prompt = finalPrompt,
                     workerUrl = prefs.imageWorkerUrl,
                     apiKey = prefs.imageApiKey,
                     pollinationsKey = prefs.pollinationsApiKey,
@@ -805,10 +845,10 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
                     )
                     delay(250)
 
-                    val responseText = if (enhancedPrompt.equals(trimmed, ignoreCase = true)) {
+                    val responseText = if (finalPrompt.equals(trimmed, ignoreCase = true)) {
                         "Here is your generated image for: \"$trimmed\"\n\n🎨 *Rendered via ${generated.engineName}*"
                     } else {
-                        "Here is your generated image for: \"$trimmed\"\n\n✨ **Enhanced prompt used:**\n$enhancedPrompt\n\n🎨 *Rendered via ${generated.engineName}*"
+                        "Here is your generated image for: \"$trimmed\"\n\n✨ **Enhanced prompt used:**\n$finalPrompt\n\n🎨 *Rendered via ${generated.engineName}*"
                     }
 
                     val assistantMessage = ChatMessageEntity(

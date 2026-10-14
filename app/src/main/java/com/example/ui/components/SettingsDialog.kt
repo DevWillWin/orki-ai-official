@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
@@ -105,6 +106,7 @@ fun SettingsDialog(
     var imageEngine by remember { mutableStateOf(prefs.imageEnginePreference) }
     var ttsSpeed by remember { mutableFloatStateOf(prefs.ttsSpeed) }
     var cacheResetMessage by remember { mutableStateOf<String?>(null) }
+    var showPerchanceDebug by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
 
@@ -604,6 +606,42 @@ fun SettingsDialog(
                                     Text("Instant 2–4s generation with automatic seamless failover protection", fontSize = 10.sp, color = SlateTextSecondary)
                                 }
                             }
+
+                            // Diagnostics: Perchance Live WebView Debug Screen
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(PureWhite)
+                                    .border(1.dp, WarmBorder, RoundedCornerShape(8.dp))
+                                    .clickable { showPerchanceDebug = true }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.BugReport,
+                                        contentDescription = "Debug",
+                                        tint = SlateTextSecondary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text("Perchance WebView Debugger", fontWeight = FontWeight.Medium, fontSize = 11.sp, color = CharcoalTextPrimary)
+                                        Text("Inspect live WebView, DNS, HTTP 403, and JS console", fontSize = 10.sp, color = SlateTextSecondary)
+                                    }
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(PaleSage)
+                                        .border(1.dp, SageGreen, RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text("Open", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = ForestGreenPrimary)
+                                }
+                            }
                         }
                     }
 
@@ -735,6 +773,12 @@ fun SettingsDialog(
                 }
             }
         }
+    }
+
+    if (showPerchanceDebug) {
+        PerchanceDebugDialog(
+            onDismiss = { showPerchanceDebug = false }
+        )
     }
 }
 

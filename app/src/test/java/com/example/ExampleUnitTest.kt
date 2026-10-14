@@ -35,5 +35,40 @@ class ExampleUnitTest {
     assertEquals("1.0 KB", formatFileSize(1024))
     assertEquals("2.5 MB", formatFileSize((2.5 * 1024 * 1024).toLong()))
   }
+
+  @Test
+  fun testBodoVisualVocabularyResolution() {
+    val swimaResolved = com.example.data.network.BodoVisualVocabulary.resolveBodoToEnglishVisual("swima")
+    assertTrue(swimaResolved.lowercase().contains("dog"))
+    assertFalse(swimaResolved.lowercase().contains("swim ") || swimaResolved.lowercase().contains("swimming"))
+
+    val maseSwima = com.example.data.network.BodoVisualVocabulary.resolveBodoToEnglishVisual("mase swima")
+    assertTrue(maseSwima.lowercase().contains("a dog"))
+
+    val mouziResolved = com.example.data.network.BodoVisualVocabulary.resolveBodoToEnglishVisual("mouzi")
+    assertTrue(mouziResolved.lowercase().contains("cat"))
+
+    val daoResolved = com.example.data.network.BodoVisualVocabulary.resolveBodoToEnglishVisual("dao")
+    assertTrue(daoResolved.lowercase().contains("bird"))
+  }
+
+  @Test
+  fun testBodoVisualPromptValidation() {
+    // 1. Must reject conversational text
+    val conversational = "What do you want to know about dogs? I can help you."
+    assertFalse(com.example.data.network.BodoVisualVocabulary.validateEnhancedPrompt("swima", conversational))
+
+    // 2. Must reject Devanagari text
+    val devanagari = "सैमाया जाबाय मानसिनि गोसोथोथाव"
+    assertFalse(com.example.data.network.BodoVisualVocabulary.validateEnhancedPrompt("swima", devanagari))
+
+    // 3. Must reject "swima" mistranslated as "swim" or "swimming"
+    val mistranslatedSwim = "A woman swimming underwater in a deep blue pool"
+    assertFalse(com.example.data.network.BodoVisualVocabulary.validateEnhancedPrompt("swima", mistranslatedSwim))
+
+    // 4. Must accept high-quality descriptive English visual prompt containing dog
+    val validPrompt = "A beautiful golden retriever dog resting on lush green grass in soft morning sunlight, 8k resolution"
+    assertTrue(com.example.data.network.BodoVisualVocabulary.validateEnhancedPrompt("swima", validPrompt))
+  }
 }
 

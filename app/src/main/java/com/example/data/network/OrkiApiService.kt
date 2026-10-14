@@ -194,43 +194,24 @@ class OrkiApiService {
 
     /**
      * Gemini Middleman Prompt Enhancer:
-     * Transforms basic or ambiguous prompts into rich, visually descriptive, culturally accurate prompts.
-     * Prevents image/video models from hallucinating on cultural attire (e.g. Dokhona, Aronai, Fasra)
-     * and adds cinematic lighting, camera perspective, textures, and framing.
+     * 1. Calls quick-processor with task="image_prompt_enhancement" to leverage Gemini + Supabase Bodo Dictionary.
+     * 2. Validates output strictly: must be English visual prompt, never conversational Bodo/Devanagari,
+     *    and guarantees intended subject preservation (e.g. "swima" resolves to dog, never swim).
+     * 3. On 429, timeout, or validation failure, uses client-side deterministic Bodo translation fallback.
      */
     suspend fun enhanceVisualPrompt(rawPrompt: String, isVideo: Boolean): String = withContext(Dispatchers.IO) {
         val trimmed = rawPrompt.trim()
         if (trimmed.isEmpty()) return@withContext trimmed
 
+        val correlationId = "enh-${java.util.UUID.randomUUID().toString().take(8)}"
+        android.util.Log.d("OrkiApiService", "[$correlationId] Enhancing prompt: \"$trimmed\" (isVideo=$isVideo)")
+
         try {
-            val systemInstruction = if (isVideo) {
-                "You are an expert AI video prompt engineer. Enhance the user's video prompt into a rich, photorealistic, cinematic visual description for an 8-second video. CRITICAL: Always output in English only, because video diffusion models require English. If cultural attire (such as Bodo traditional 'dokhona', 'aronai', 'fasra', cultural festivals, or scenery) is mentioned, translate and describe authentic visual details, fabrics, handwoven motifs, and vibrant colors (yellow, green, red) accurately so the generator does not hallucinate. Specify camera motion (smooth cinematic pan/zoom, 4k detail, atmospheric lighting). Keep it concise, under 60 words. Return ONLY the enhanced prompt in English, no quotes or preamble."
-            } else {
-                "You are an expert AI image prompt engineer. Enhance the user's image prompt into a rich, photorealistic, visually precise description. CRITICAL: Always output in English only, because image diffusion models require English. If cultural attire (such as Bodo traditional 'dokhona', 'aronai', 'fasra', cultural festivals, or scenery) is mentioned, translate and describe authentic visual details, fabrics, handwoven Agor motifs, and vibrant colors (yellow, green, red) accurately so the diffusion model does not hallucinate. Include camera lighting, framing, 8k resolution, photorealistic masterpiece details. Keep it concise, under 60 words. Return ONLY the enhanced prompt in English, no quotes or preamble."
-            }
-
-            val contents = JSONArray().apply {
-                put(JSONObject().apply {
-                    put("role", "user")
-                    put("parts", JSONArray().apply {
-                        put(JSONObject().apply {
-                            put("text", "$systemInstruction\n\nUser request: \"$trimmed\"\n\nEnhanced prompt:")
-                        })
-                    })
-                })
-            }
-
             val payload = JSONObject().apply {
-                put("plan", "Pro")
-                put("model", "gemini-2.0-flash")
-                put("script", "Latin")
-                put("userPersona", "")
-                put("contents", contents)
-                put("isLiveMode", false)
-                put("generationConfig", JSONObject().apply {
-                    put("temperature", 0.3)
-                    put("maxOutputTokens", 180)
-                })
+                put("task", "image_prompt_enhancement")
+                put("prompt", trimmed)
+                put("isVideo", isVideo)
+                put("correlationId", correlationId)
             }
 
             val request = Request.Builder()
@@ -239,43 +220,33 @@ class OrkiApiService {
                 .build()
 
             val response = client.newCall(request).execute()
-            if (!response.isSuccessful) return@withContext trimmed
-
-            val body = response.body ?: return@withContext trimmed
-            val reader = BufferedReader(InputStreamReader(body.byteStream()))
-            val enhancedBuilder = StringBuilder()
-
-            var line: String? = reader.readLine()
-            while (line != null) {
-                val lineTrimmed = line.trim()
-                if (lineTrimmed.startsWith("data: ")) {
-                    val jsonStr = lineTrimmed.substring(6).trim()
-                    if (jsonStr.isNotEmpty()) {
-                        try {
-                            val parsed = JSONObject(jsonStr)
-                            val candidates = parsed.optJSONArray("candidates")
-                            if (candidates != null && candidates.length() > 0) {
-                                val content = candidates.getJSONObject(0).optJSONObject("content")
-                                val parts = content?.optJSONArray("parts")
-                                if (parts != null && parts.length() > 0) {
-                                    val chunk = parts.getJSONObject(0).optString("text", "")
-                                    enhancedBuilder.append(chunk)
-                                }
-                            }
-                        } catch (_: Exception) {}
+            if (response.isSuccessful) {
+                val resBody = response.body?.string() ?: ""
+                if (resBody.isNotBlank()) {
+                    // Try parsing JSON response
+                    try {
+                        val json = JSONObject(resBody)
+                        val enhancedCandidate = json.optString("enhancedPrompt", "").trim()
+                        if (BodoVisualVocabulary.validateEnhancedPrompt(trimmed, enhancedCandidate)) {
+                            android.util.Log.d("OrkiApiService", "[$correlationId] Enhancement validated: \"$enhancedCandidate\"")
+                            return@withContext enhancedCandidate
+                        } else {
+                            android.util.Log.w("OrkiApiService", "[$correlationId] Server candidate failed validation: \"$enhancedCandidate\"")
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.w("OrkiApiService", "[$correlationId] Failed to parse JSON response: $e")
                     }
                 }
-                line = reader.readLine()
+            } else {
+                android.util.Log.w("OrkiApiService", "[$correlationId] Quick processor returned HTTP ${response.code}")
             }
-
-            val finalEnhanced = enhancedBuilder.toString()
-                .replace(Regex("^(Enhanced prompt|Prompt):?\\s*", RegexOption.IGNORE_CASE), "")
-                .replace(Regex("^\"|\"$"), "")
-                .trim()
-
-            if (finalEnhanced.isNotBlank()) finalEnhanced else trimmed
         } catch (e: Exception) {
-            trimmed
+            android.util.Log.w("OrkiApiService", "[$correlationId] Enhancement request exception: ${e.message}")
         }
+
+        // Deterministic Fallback: Never send raw "swima" or Bodo text to diffusion models!
+        val fallbackPrompt = BodoVisualVocabulary.resolveBodoToEnglishVisual(trimmed, isVideo)
+        android.util.Log.d("OrkiApiService", "[$correlationId] Using deterministic Bodo visual fallback: \"$fallbackPrompt\"")
+        fallbackPrompt
     }
 }

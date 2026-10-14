@@ -1,0 +1,32 @@
+name: Bodo pipeline regressions
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  local-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install pinned Kotlin CLI for independent JVM smoke tests
+        run: npm install --prefix .build-outputs/jvm-tools --no-audit --no-fund kotlin-compiler@2.2.10
+      - name: Test actual JVM language code without Android
+        run: |
+          export PATH="$PWD/.build-outputs/jvm-tools/node_modules/kotlin-compiler/bin:$PATH"
+          bash scripts/test-bodo-jvm.sh
+      - name: Check lexicon projections
+        run: python3 scripts/generate-bodo-lexicon.py --check
+      - name: Check edge function types
+        run: npx --yes deno@2.9.6 check supabase/functions/quick-processor/index.ts
+      - name: Test actual edge handler with mocked Gemini boundary
+        run: node --test tests/bodo-pipeline.test.mjs

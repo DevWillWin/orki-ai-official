@@ -1,17 +1,14 @@
 package com.example.data.audio
 
 import java.util.regex.Pattern
+import java.util.Locale
+import com.example.data.language.BodoLexicon
 
 /**
- * High-performance Phonetic Normalizer & Pre-processor for Bodo (बर') Speech Synthesis.
- *
- * Resolves pronunciation degradation by:
- * 1. Stripping markdown formatting, code blocks, bullet points, and web symbols.
- * 2. Purging all emoji glyphs (which confuse Indic TTS neural acoustic models).
- * 3. Phonetically transliterating English loanwords (e.g. "Spanish" -> "स्पेनिस", "phone" -> "फोन", "AI" -> "एआइ").
- * 4. Converting numeric digits into spoken Bodo numbers (e.g. 1 -> से, 2 -> नै, 3 -> थाम).
- * 5. Syllable-aware Roman Bodo to Devanagari conversion preventing illegal Unicode matra combinations.
- * 6. Inserting acoustic pause markers at punctuation boundaries (commas, periods, question marks).
+ * Speech-only cleanup and legacy Roman Bodo transliteration fallback.
+ * Never use this to interpret/rewrite chat or image requests. Dictionary forms
+ * and unknown-word phonetics are inherited/provisional, not verified Bodo orthography.
+ * The fallback is heuristic; successful normalization does not prove intelligible TTS.
  */
 object BodoTtsNormalizer {
 
@@ -98,25 +95,7 @@ object BodoTtsNormalizer {
         "mithigo" to "मिथियो",
         "sanse" to "सानसे",
         "boraibai" to "बरायबाय",
-        "bwraibai" to "बरायबाय",
-        // Common Animals & Everyday Vocabulary
-        "swima" to "सैमा",
-        "suima" to "सैमा",
-        "saima" to "सैमा",
-        "mousi" to "मावजि",
-        "maosi" to "मावजि",
-        "maoji" to "मावजि",
-        "mwsou" to "मसौ",
-        "mosou" to "मसौ",
-        "mousou" to "मसौ",
-        "mwisw" to "मैस'",
-        "maisu" to "मैस'",
-        "oma" to "अमा",
-        "dao" to "दाव",
-        "na" to "ना",
-        "dwi" to "दै",
-        "nokhor" to "नखर",
-        "hagra" to "हाग्रा"
+        "bwraibai" to "बरायबाय"
     )
 
     // English loanwords transliterated into phonetic Devanagari so Indic TTS models pronounce them naturally
@@ -208,47 +187,20 @@ object BodoTtsNormalizer {
             text = text.replace(pattern, deva)
         }
 
-        // 6. If the text already contains Devanagari characters, clean punctuation and return
-        val devanagariCount = text.count { it in '\u0900'..'\u097F' }
-        if (devanagariCount >= 3) {
-            return formatPunctuationPauses(cleanDevanagariArtifacts(text))
+        // 6. Convert each Roman token independently. Devanagari elsewhere (including
+        // a loanword replaced above) must not skip the remaining Roman Bodo words.
+        // This is speech-only processing: never apply it to chat/image user input.
+        val transliterated = Regex("[\\p{L}\\p{M}']+").replace(text) { match ->
+            val word = match.value
+            if (word.any { it in '\u0900'..'\u097F' }) word else {
+                val key = word.lowercase(Locale.ROOT)
+                ROMAN_BODO_DICTIONARY[key]
+                    ?: BodoLexicon.lookup(key)?.devanagari?.firstOrNull()
+                    ?: convertWord(key)
+            }
         }
-
-        // 7. Otherwise, text is in Roman Bodo script. Transliterate to standard Bodo Devanagari
-        var romanText = text.lowercase()
-
-        // Apply whole-word dictionary replacements first
-        for ((rom, deva) in ROMAN_BODO_DICTIONARY) {
-            romanText = romanText.replace(Regex("\\b$rom\\b"), deva)
-        }
-
-        // Syllable-aware phonetics for remaining words
-        val transliterated = transliterateRomanToDevanagari(romanText)
 
         return formatPunctuationPauses(cleanDevanagariArtifacts(transliterated))
-    }
-
-    /**
-     * Syllable-based transliteration ensuring base consonants precede vowel matras.
-     */
-    private fun transliterateRomanToDevanagari(input: String): String {
-        val words = input.split(" ")
-        val sb = StringBuilder()
-
-        for ((idx, word) in words.withIndex()) {
-            if (idx > 0) sb.append(" ")
-
-            // If word already contains Devanagari, keep it as-is
-            if (word.any { it in '\u0900'..'\u097F' }) {
-                sb.append(word)
-                continue
-            }
-
-            // Word-level transliteration
-            sb.append(convertWord(word))
-        }
-
-        return sb.toString()
     }
 
     private fun convertWord(w: String): String {
@@ -305,15 +257,17 @@ object BodoTtsNormalizer {
      */
     private fun cleanDevanagariArtifacts(text: String): String {
         return text
-            // Replace dangling vowel matras at the beginning of words with independent vowels
-            .replace(Regex("\\bा"), "आ")
-            .replace(Regex("\\bि"), "इ")
-            .replace(Regex("\\bु"), "उ")
-            .replace(Regex("\\bे"), "ए")
-            .replace(Regex("\\bो"), "ओ")
-            .replace(Regex("\\bौ"), "औ")
-            .replace(Regex("\\bै"), "ऐ")
-            .replace(Regex("\\s+([ािुेोौैं])"), " $1")
+            // Java \b treats these combining marks as word boundaries on some JVMs.
+            // It changed valid सैमा into सऐमा. Only repair a genuinely orphaned matra:
+            // it must not follow any Unicode letter OR combining mark.
+            .replace(Regex("(?<![\\p{L}\\p{M}])ा"), "आ")
+            .replace(Regex("(?<![\\p{L}\\p{M}])ि"), "इ")
+            .replace(Regex("(?<![\\p{L}\\p{M}])ु"), "उ")
+            .replace(Regex("(?<![\\p{L}\\p{M}])े"), "ए")
+            .replace(Regex("(?<![\\p{L}\\p{M}])ो"), "ओ")
+            .replace(Regex("(?<![\\p{L}\\p{M}])ौ"), "औ")
+            .replace(Regex("(?<![\\p{L}\\p{M}])ै"), "ऐ")
+
     }
 
     /**

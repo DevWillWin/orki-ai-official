@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "notes": "User-confirmed dog gloss is the only product-confirmed Bodo meaning here. Mixed-script constraints are English, not invented Bodo sentence translations. Natural sentences below come from the existing prompt and need native review before becoming gold examples. Image outputs require human intent comparison; chat outputs require native-speaker review.",
+  "cases": [
+    {"id": "dog-roman", "task": "image_prompt_enhancement", "prompt": "swima", "status": "user_confirmed", "intent": "One dog; no unrelated subject."},
+    {"id": "dog-variant", "task": "image_prompt_enhancement", "prompt": "suima", "status": "user_confirmed", "intent": "One dog; no unrelated subject."},
+    {"id": "dog-deva", "task": "image_prompt_enhancement", "prompt": "सैमा", "status": "provisional_form", "intent": "Inherited dog form; native reviewer must verify spelling."},
+    {"id": "english-image", "task": "image_prompt_enhancement", "prompt": "Two dogs in a forest, watercolor, overhead view, no people", "status": "english_control", "intent": "Exactly two dogs, forest, watercolor, overhead view, no people. Do not force photorealism."},
+    {"id": "roman-count-exclusion", "task": "image_prompt_enhancement", "prompt": "2 suima, watercolor, no people or robots", "status": "mixed_script", "intent": "Exactly two dogs, watercolor; no people or robots."},
+    {"id": "deva-count-exclusion", "task": "image_prompt_enhancement", "prompt": "2 सैमा, watercolor, no people or robots", "status": "mixed_script_provisional_form", "intent": "Exactly two dogs, watercolor; no people or robots. Verify Bodo form separately."},
+    {"id": "water-not-river", "task": "image_prompt_enhancement", "prompt": "dwi in a glass, no river", "status": "provisional_gloss", "intent": "Inherited water gloss. Preserve glass and exclusion; do not invent a river."},
+    {"id": "ambiguous-token", "task": "image_prompt_enhancement", "prompt": "na", "status": "ambiguous", "intent": "Ask a concise clarification; do not assume Bodo fish from this token alone."},
+    {"id": "english-collision", "task": "image_prompt_enhancement", "prompt": "A swimming dog, no robots", "status": "english_control", "intent": "Swimming dog. Do not rewrite swimming because it resembles swima."},
+    {"id": "explicit-language", "task": "chat", "script": "roman", "prompt": "In English, tell me what swima means in our Bodo vocabulary.", "status": "user_confirmed", "intent": "Display in English and identify custom dog meaning; do not claim independent verification."},
+    {"id": "chat-correction", "task": "chat", "script": "roman", "history": [{"role": "user", "parts": [{"text": "We were discussing robots."}]}, {"role": "model", "parts": [{"text": "Yes, robots."}]}], "prompt": "Now swima, not a robot. In English, what animal do I mean?", "status": "user_confirmed", "intent": "Dog; latest subject/correction overrides stale robot context."},
+    {"id": "roman-native-review", "task": "chat", "script": "roman", "prompt": "Nwgtang ang khow modod khalam nw hagwn na?", "status": "needs_native_review", "source": "quick-processor (1).zip: ROMAN_PROMPT", "intent": null},
+    {"id": "deva-native-review", "task": "chat", "script": "deva", "prompt": "नों स्वर्गआव दं नामा?", "status": "needs_native_review", "source": "quick-processor (1).zip: DEVA_FUNNY_EXAMPLES", "intent": null}
+  ]
+}

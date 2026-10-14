@@ -597,55 +597,6 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
         return true
     }
 
-    data class VisualIntent(val type: String, val prompt: String)
-
-    private fun extractVisualIntent(rawText: String): VisualIntent? {
-        val t = rawText.trim()
-        if (t.isEmpty()) return null
-        val lower = t.lowercase()
-
-        // 1. Explicit Slash Commands
-        val slashImageRegex = Regex("^/(image|imagine|draw|img)\\s+(.+)$", RegexOption.IGNORE_CASE)
-        val slashImageMatch = slashImageRegex.find(t)
-        if (slashImageMatch != null) {
-            return VisualIntent("image", slashImageMatch.groupValues[2].trim())
-        }
-
-        // 2. Natural Image Request Intents (Handles 'create an image of', 'draw me a', 'picture of', etc.)
-        val imagePattern = Regex(
-            "^(?:hey\\s+orki\\s*,?\\s*|can\\s+you\\s+(?:please\\s+)?|could\\s+you\\s+(?:please\\s+)?|please\\s+|i\\s+want\\s+(?:you\\s+to\\s+|a\\s+)?|make\\s+me\\s+a\\s+|give\\s+me\\s+a\\s+|show\\s+me\\s+a\\s+)?(?:generate|create|ceeate|make|render|produce|draw|paint|illustrate|show|give)?\\s*(?:an?\\s+)?(?:ai\\s+)?(?:image|inage|picture|piture|photo|artwork|drawing|illustration|painting|wallpaper)\\s*(?:of|about|showing|with|for|depicting)?\\s*(.+)$",
-            RegexOption.IGNORE_CASE
-        )
-        val imageMatch = imagePattern.find(t)
-        if (imageMatch != null && imageMatch.groupValues[1].isNotBlank()) {
-            val candidate = imageMatch.groupValues[1].trim()
-            if (candidate.length >= 2) {
-                return VisualIntent("image", candidate)
-            }
-        }
-
-        // 3. Drawing Commands (e.g. 'draw a cat', 'draw me a girl in dokhona')
-        val drawPattern = Regex(
-            "^(?:can\\s+you\\s+(?:please\\s+)?|could\\s+you\\s+(?:please\\s+)?|please\\s+)?(?:draw|paint|illustrate)\\s*(?:me\\s+)?(?:an?\\s+)?(.+)$",
-            RegexOption.IGNORE_CASE
-        )
-        val drawMatch = drawPattern.find(t)
-        if (drawMatch != null && drawMatch.groupValues[1].isNotBlank()) {
-            val candidate = drawMatch.groupValues[1].trim()
-            if (candidate.length >= 2) {
-                return VisualIntent("image", candidate)
-            }
-        }
-
-        // 4. Bodo Language Triggers
-        if (lower.contains("छबि बानाय") || lower.contains("बानाय छबि")) {
-            val clean = t.replace(Regex("छबि|बानाय"), "").trim()
-            if (clean.isNotEmpty()) return VisualIntent("image", clean)
-        }
-
-        return null
-    }
-
     fun sendMessage(userText: String) {
         val attachment = _uiState.value.attachedFile
         val trimmed = userText.trim()
@@ -653,7 +604,7 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
         if (_uiState.value.isGenerating) return
 
         // Intelligent Visual Intent Detection (Natural language Image requests + slash commands)
-        val visualIntent = extractVisualIntent(trimmed)
+        val visualIntent = com.example.data.language.VisualIntentDetector.extract(trimmed)
         if (visualIntent != null && attachment == null) {
             if (visualIntent.type == "image") {
                 generateImage(visualIntent.prompt)
@@ -740,7 +691,29 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             )
 
             val enhancedPrompt = try {
-                apiService.enhanceVisualPrompt(trimmed, isVideo = false)
+                apiService.enhanceVisualPrompt(trimmed, isVideo = false, script = _uiState.value.script)
+            } catch (e: com.example.data.network.VisualPromptClarificationException) {
+                // No image endpoint is called until the user clarifies the intended subject.
+                val clarification = ChatMessageEntity(
+                    id = UUID.randomUUID().toString(),
+                    conversationId = _uiState.value.currentConversationId ?: "",
+                    role = "model",
+                    text = e.message ?: "Please clarify the image you want.",
+                    timestamp = System.currentTimeMillis()
+                )
+                _uiState.value = _uiState.value.copy(
+                    messages = _uiState.value.messages + clarification,
+                    isGenerating = false,
+                    isThinking = false,
+                    imageGenProgress = 0,
+                    imageGenStage = "",
+                    imageGenPrompt = "",
+                    isGeneratingImage = false
+                )
+                persistThread(_uiState.value.messages)
+                return@launch
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (_: Exception) {
                 trimmed
             }
@@ -1007,7 +980,7 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
             val script = _uiState.value.script
             val scriptConstraint = if (script == "roman") {
                 "\n[Constraint for Orki Response:\n" +
-                "1. DISPLAY PART: Provide conversational reply in natural colloquial Roman Bodo (using 'w', 'dong', 'mwjang', etc.).\n" +
+                "1. DISPLAY PART: Unless the user explicitly requests another language/script, provide conversational reply in natural colloquial Roman Bodo (using 'w', 'dong', 'mwjang', etc.).\n" +
                 "2. TTS SYNTHESIS PART: You MUST follow immediately on a brand new line with exactly '---TTS---'.\n" +
                 "3. After '---TTS---', output the EXACT same reply converted into pure, phonetically accurate Bodo Devanagari script (बर' हांखो) specifically optimized for the speech synthesizer:\n" +
                 "   - NO markdown formatting (no bold **, no headers #, no bullet points -).\n" +
@@ -1021,7 +994,7 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
                 "ओइ जोमै! स्पेनिस रायलायनो नागिरदों नामा? मा खबर नोंना?]"
             } else {
                 "\n[Constraint for Orki Response:\n" +
-                "1. DISPLAY PART: Reply strictly in Bodo Devanagari script (बर' हांखो).\n" +
+                "1. DISPLAY PART: Unless the user explicitly requests another language/script, reply in Bodo Devanagari script (बर' हांखो).\n" +
                 "2. TTS SYNTHESIS PART: Always append '---TTS---' followed by a clean, pure speech-ready version:\n" +
                 "   - Strip all markdown symbols (**, ##, bullets, lists).\n" +
                 "   - Strip all emojis.\n" +
@@ -1029,16 +1002,10 @@ class OrkiViewModel(application: Application) : AndroidViewModel(application) {
                 "   - Phonetically write any English or loan terms in Devanagari (e.g. फोन, स्पेनिस).]"
             }
             val livePromptConstraint = if (liveMode) {
-                "\n[LIVE VOICE MODE: You are conversing in a live audio call. Keep your answer strictly to 1 or 2 ultra-concise, natural spoken sentences in Bodo. No lists, no bullets, no markdown.]"
+                "\n[LIVE VOICE MODE: You are conversing in a live audio call. Keep your answer to 1 or 2 concise, natural spoken sentences. Use Bodo unless the user explicitly requests another language. No lists, no bullets, no markdown.]"
             } else ""
 
-            val bodoKnowledgeBase = "\n[Bodo Language & Vocabulary Knowledge Base:\n" +
-                "You are Orki, an authentic conversational AI fluent in Bodo (बर' राव). Accurately understand both colloquial Roman Bodo and standard Bodo Devanagari:\n" +
-                "- 'swima' (also written 'suima', 'saima' / सैमा) = DOG.\n" +
-                "- 'mousi' (also written 'maosi', 'maoji' / मावजि, मावसि) = CAT. (CRITICAL: Do NOT confuse with Hindi 'mousi/mausi' which means maternal aunt; in Bodo, 'mousi'/'maosi' refers to cat / मावजि).\n" +
-                "- 'mwsou' / 'mosou' (मसौ) = COW / cattle; 'mwisw' / 'maisu' (मैस') = BUFFALO; 'oma' (अमा) = PIG; 'dao' (दाव) = BIRD / CHICKEN; 'na' (ना) = FISH.\n" +
-                "- 'dwi' (दै) = water, 'onkham' / 'wngkham' (ओंखाम) = cooked rice / meal, 'nokhor' (नखर) = family / household, 'hagra' (हाग्रा) = jungle / forest, 'fwrwng' / 'solong' = teach / learn.\n" +
-                "- Always interpret colloquial Roman Bodo naturally and correctly, respecting authentic Bodo definitions and culture.]"
+            val bodoKnowledgeBase = "\n" + com.example.data.language.BodoLexicon.PROMPT_REFERENCE
 
             val fullConstraints = "$scriptConstraint$bodoKnowledgeBase$livePromptConstraint"
 
